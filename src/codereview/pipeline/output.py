@@ -69,6 +69,7 @@ def render_markdown(result: ReviewResult) -> str:
         f"- Findings reported: **{len(ranked)}** "
         f"({len(result.inline)} inline, {len(result.overflow)} overflow)",
     ]
+    out += [f"- WARNING: {w}" for w in [*result.errors, *result.warnings]]
     if ranked:
         out.append(
             "- By severity: "
@@ -175,6 +176,7 @@ def render_review_body(
         f"- {len(ranked)} finding(s) after filtering; {n_inline} posted inline "
         f"(severity >= {min_severity:g}).",
     ]
+    out += [f"- WARNING: {w}" for w in [*result.errors, *result.warnings]]
     if ranked:
         out += ["", "### Ranking", "", *_table(ranked)]
     if rest:

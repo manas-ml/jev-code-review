@@ -157,6 +157,10 @@ class ReviewResult(BaseModel):
     overflow: list[FindingRecord] = Field(default_factory=list)
     discarded: list[FindingRecord] = Field(default_factory=list)
     summary: str = ""
+    errors: list[str] = Field(default_factory=list)
+    """Fatal: the review could not be completed (nothing trustworthy to report)."""
+    warnings: list[str] = Field(default_factory=list)
+    """Partial failures: some agents/judge calls failed; results may be incomplete."""
 
 
 ReviewContext.model_rebuild()

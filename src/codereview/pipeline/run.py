@@ -99,6 +99,17 @@ async def run_pipeline(
         chunks = file_chunks(ctx)
         batches = await asyncio.gather(*(one(a, c) for a in decision.agents for c in chunks))
     candidates = [f for b in batches for f in b]
+    n_tasks = len(decision.agents) * len(chunks)
+    n_dropped = len(tracer.extra.get("dropped_agents", []))
+    if n_tasks and n_dropped >= n_tasks:
+        first = tracer.extra["dropped_agents"][0]["error"]
+        result.errors.append(f"all {n_tasks} agent run(s) failed; first error: {first}")
+    elif n_dropped:
+        result.warnings.append(
+            f"{n_dropped} of {n_tasks} agent run(s) failed; review may be incomplete"
+        )
+    if decision.failed_safe and any("judge unavailable" in r for r in decision.reasons):
+        result.warnings.append("triage judge failed; fell back to a full deep review")
     tracer.extra["n_candidates"] = len(candidates)
 
     # ---- gate

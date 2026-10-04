@@ -40,6 +40,9 @@ def review(
     if pipeline not in PIPELINES:
         raise typer.BadParameter(f"pipeline must be one of {PIPELINES}")
     settings = load_settings()
+    if not settings.openrouter_api_key and (pipeline == "baseline" or settings.jev_mode == "real"):
+        console.print("[red]OPENROUTER_API_KEY is not set[/red] (needed for agents and the judge)")
+        raise typer.Exit(2)
     if min_severity is not None:
         settings.post_min_severity = min_severity
 
@@ -59,7 +62,7 @@ def review(
             comments, rest = split_for_posting(
                 result, floor, commentable_lines(ctx.files), settings.max_inline_comments
             )
-            if not (comments or rest or result.route.human_required):
+            if not (comments or rest or result.route.human_required or result.warnings):
                 console.print("nothing to post (no findings, no human-review flag)")
                 return result
             body = render_review_body(result, len(comments), rest, floor)
@@ -74,6 +77,12 @@ def review(
 
     result = asyncio.run(go())
     console.print(result.summary)
+    for w in result.warnings:
+        console.print(f"[yellow]warning:[/yellow] {w}")
+    if result.errors:
+        for e in result.errors:
+            console.print(f"[red]error:[/red] {e}")
+        raise typer.Exit(1)
 
 
 from codereview.eval.cli import register  # noqa: E402

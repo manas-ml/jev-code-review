@@ -110,3 +110,42 @@ async def test_dedupe_and_cap(settings):
     )
     assert len(res.inline) == 1
     assert any(r.disposition == "deduped" for r in res.discarded)
+
+
+async def test_all_agents_failing_is_an_error_not_a_clean_review(settings):
+    from codereview.llm.client import LLMError
+
+    class DownLLM(FakeLLM):
+        async def chat(self, messages, **kw):
+            raise LLMError("HTTP 401")
+
+    res = await run_pipeline(
+        "jev",
+        load("bugfix"),
+        DownLLM(default_handler),
+        MockJevJudge(),
+        settings,
+        Tracer("jev", "b"),
+    )
+    assert res.errors and "all" in res.errors[0] and "HTTP 401" in res.errors[0]
+    assert not res.inline
+
+
+async def test_partial_agent_failure_is_a_warning(settings):
+    from codereview.llm.client import LLMError
+
+    class FlakyLLM(FakeLLM):
+        async def chat(self, messages, *, stage, **kw):
+            if stage == "agent:tests":
+                raise LLMError("boom")
+            return await super().chat(messages, stage=stage, **kw)
+
+    res = await run_pipeline(
+        "jev",
+        load("bugfix"),
+        FlakyLLM(default_handler),
+        MockJevJudge(),
+        settings,
+        Tracer("jev", "b"),
+    )
+    assert not res.errors and any("failed" in w for w in res.warnings)
