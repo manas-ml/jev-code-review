@@ -1,0 +1,4 @@
+{
+  "title": "Correctly guard empty list",
+  "description": "Fix crash on empty input."
+}

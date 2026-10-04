@@ -1,0 +1,13 @@
+diff --git a/app/util.py b/app/util.py
+index 111..222 100644
+--- a/app/util.py
++++ b/app/util.py
+@@ -1,5 +1,5 @@
+ def total(xs):
+-    s = 0
++    acc = 0
+     for x in xs:
+-        s += x
+-    return s
++        acc += x
++    return acc

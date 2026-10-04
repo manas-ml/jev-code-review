@@ -1,0 +1,11 @@
+diff --git a/tests/test_math.py b/tests/test_math.py
+index 111..222 100644
+--- a/tests/test_math.py
++++ b/tests/test_math.py
+@@ -1,2 +1,6 @@
+ def test_one():
+     assert 1 + 1 == 2
++
++
++def test_two():
++    assert 2 + 2 == 4

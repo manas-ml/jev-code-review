@@ -1,0 +1,13 @@
+diff --git a/app/retry.py b/app/retry.py
+index 111..222 100644
+--- a/app/retry.py
++++ b/app/retry.py
+@@ -1,2 +1,7 @@
+ def call(fn):
+-    return fn()
++    for attempt in range(3):
++        try:
++            return fn()
++        except Exception:
++            if attempt == 2:
++                return None

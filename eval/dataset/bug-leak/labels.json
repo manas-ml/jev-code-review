@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/config_io.py",
+      "line_start": 5,
+      "line_end": 5,
+      "description": "File handle leaked: opened without a context manager or close()."
+    }
+  ],
+  "nitpicks": []
+}

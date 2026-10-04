@@ -1,0 +1,9 @@
+diff --git a/app/paging.py b/app/paging.py
+index 111..222 100644
+--- a/app/paging.py
++++ b/app/paging.py
+@@ -1,3 +1,3 @@
+ def page(items, n, size):
+-    start = (n - 1) * size
++    start = n * size
+     return items[start:start + size]

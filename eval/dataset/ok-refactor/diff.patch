@@ -1,0 +1,12 @@
+diff --git a/app/evens.py b/app/evens.py
+index 111..222 100644
+--- a/app/evens.py
++++ b/app/evens.py
+@@ -1,6 +1,2 @@
+ def evens(xs):
+-    out = []
+-    for x in xs:
+-        if x % 2 == 0:
+-            out.append(x)
+-    return out
++    return [x for x in xs if x % 2 == 0]

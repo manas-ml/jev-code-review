@@ -11,7 +11,7 @@ from codereview.pipeline.run import run_pipeline
 from codereview.tracing import Tracer
 from conftest import FakeLLM, default_handler
 
-DATASET = Path(__file__).parent.parent / "eval" / "dataset"
+DATASET = Path(__file__).parent / "fixtures" / "eval_dataset"
 
 
 async def test_dataset_scoring_and_report(settings, tmp_path):

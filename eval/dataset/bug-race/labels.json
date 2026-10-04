@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/counter.py",
+      "line_start": 9,
+      "line_end": 9,
+      "description": "Race condition: lock removed so concurrent increments are lost."
+    }
+  ],
+  "nitpicks": []
+}

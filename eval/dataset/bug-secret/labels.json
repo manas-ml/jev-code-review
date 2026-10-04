@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/billing.py",
+      "line_start": 5,
+      "line_end": 5,
+      "description": "Hardcoded live API secret committed to source."
+    }
+  ],
+  "nitpicks": []
+}

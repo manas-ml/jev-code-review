@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/retry.py",
+      "line_start": 7,
+      "line_end": 7,
+      "description": "After the last retry the error is swallowed and None returned instead of re-raising."
+    }
+  ],
+  "nitpicks": []
+}

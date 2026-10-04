@@ -1,0 +1,8 @@
+diff --git a/requirements.txt b/requirements.txt
+index 111..222 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,2 +1,2 @@
+-requests==2.31.0
++requests==2.32.3
+ pydantic==2.5.0

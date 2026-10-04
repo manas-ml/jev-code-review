@@ -1,0 +1,12 @@
+diff --git a/app/config_io.py b/app/config_io.py
+index 111..222 100644
+--- a/app/config_io.py
++++ b/app/config_io.py
+@@ -2,5 +2,5 @@
+ 
+ 
+ def load(path):
+-    with open(path) as f:
+-        return json.load(f)
++    f = open(path)
++    return json.load(f)

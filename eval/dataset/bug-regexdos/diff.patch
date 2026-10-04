@@ -1,0 +1,10 @@
+diff --git a/app/validate.py b/app/validate.py
+index 111..222 100644
+--- a/app/validate.py
++++ b/app/validate.py
+@@ -2,4 +2,4 @@
+ 
+ 
+ def ok(email):
+-    return "@" in email
++    return re.match(r"^([a-zA-Z0-9]+)*@example\.com$", email) is not None

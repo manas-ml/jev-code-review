@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/auth/perms.py",
+      "line_start": 2,
+      "line_end": 2,
+      "description": "Auth bypass: `or` lets any verified user be admin (should be `and`)."
+    }
+  ],
+  "nitpicks": []
+}

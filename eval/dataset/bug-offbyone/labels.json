@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/paging.py",
+      "line_start": 2,
+      "line_end": 2,
+      "description": "Off-by-one: pages are 1-indexed, so page 1 skips the first page of items."
+    }
+  ],
+  "nitpicks": []
+}

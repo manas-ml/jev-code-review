@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/db.py",
+      "line_start": 7,
+      "line_end": 7,
+      "description": "SQL injection: user-controlled name interpolated into the query."
+    }
+  ],
+  "nitpicks": []
+}

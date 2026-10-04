@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/orders.py",
+      "line_start": 3,
+      "line_end": 3,
+      "description": "N+1 query: one customer query per order in a loop (should JOIN)."
+    }
+  ],
+  "nitpicks": []
+}

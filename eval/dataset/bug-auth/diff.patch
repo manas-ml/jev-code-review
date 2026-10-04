@@ -1,0 +1,8 @@
+diff --git a/app/auth/perms.py b/app/auth/perms.py
+index 111..222 100644
+--- a/app/auth/perms.py
++++ b/app/auth/perms.py
+@@ -1,2 +1,2 @@
+ def is_admin(user):
+-    return user.get("role") == "admin" and user.get("verified") is True
++    return user.get("role") == "admin" or user.get("verified") is True

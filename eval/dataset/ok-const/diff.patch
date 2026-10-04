@@ -1,0 +1,11 @@
+diff --git a/app/limits.py b/app/limits.py
+index 111..222 100644
+--- a/app/limits.py
++++ b/app/limits.py
+@@ -1,2 +1,5 @@
++MAX_ITEMS = 1000
++
++
+ def too_big(n):
+-    return n > 1000
++    return n > MAX_ITEMS

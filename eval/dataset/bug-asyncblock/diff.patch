@@ -1,0 +1,13 @@
+diff --git a/app/fetch.py b/app/fetch.py
+index 111..222 100644
+--- a/app/fetch.py
++++ b/app/fetch.py
+@@ -1,6 +1,7 @@
+ import asyncio
++import time
+ 
+ 
+ async def fetch(client, url):
+-    await asyncio.sleep(0.1)
++    time.sleep(0.1)
+     return await client.get(url)

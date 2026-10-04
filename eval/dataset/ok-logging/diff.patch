@@ -1,0 +1,10 @@
+diff --git a/app/main.py b/app/main.py
+index 111..222 100644
+--- a/app/main.py
++++ b/app/main.py
+@@ -4,4 +4,5 @@
+ 
+ 
+ def start():
++    log.info("starting")
+     return True

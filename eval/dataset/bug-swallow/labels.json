@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/sync.py",
+      "line_start": 5,
+      "line_end": 5,
+      "description": "All push errors are silently swallowed so data loss goes unnoticed."
+    }
+  ],
+  "nitpicks": []
+}

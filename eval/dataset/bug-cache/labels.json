@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/cache.py",
+      "line_start": 11,
+      "line_end": 11,
+      "description": "Cache keys are stored as given (ints), but invalidate pops str(user_id), so entries never evict."
+    }
+  ],
+  "nitpicks": []
+}

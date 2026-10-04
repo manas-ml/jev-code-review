@@ -1,0 +1,8 @@
+diff --git a/app/stats.py b/app/stats.py
+index 111..222 100644
+--- a/app/stats.py
++++ b/app/stats.py
+@@ -1,2 +1,2 @@
+ def mean(xs):
+-    return sum(xs) / len(xs) if xs else 0.0
++    return sum(xs) / len(xs)

@@ -1,0 +1,10 @@
+diff --git a/app/billing.py b/app/billing.py
+index 111..222 100644
+--- a/app/billing.py
++++ b/app/billing.py
+@@ -2,4 +2,4 @@
+ 
+ 
+ def headers():
+-    return {"Authorization": "Bearer " + os.environ["BILLING_KEY"]}
++    return {"Authorization": "Bearer sk_live_51Hq83LkjD92mXzP0aQvT7yRw"}

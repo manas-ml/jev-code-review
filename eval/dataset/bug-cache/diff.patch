@@ -1,0 +1,12 @@
+diff --git a/app/cache.py b/app/cache.py
+index 111..222 100644
+--- a/app/cache.py
++++ b/app/cache.py
+@@ -5,3 +5,7 @@
+     if key not in _cache:
+         _cache[key] = loader(key)
+     return _cache[key]
++
++
++def invalidate(user_id):
++    _cache.pop(str(user_id), None)

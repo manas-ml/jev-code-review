@@ -1,0 +1,9 @@
+diff --git a/app/shipping.py b/app/shipping.py
+index 111..222 100644
+--- a/app/shipping.py
++++ b/app/shipping.py
+@@ -1,2 +1,4 @@
+ def shipping(total):
++    if total > 50:
++        return 0.0
+     return 5.0

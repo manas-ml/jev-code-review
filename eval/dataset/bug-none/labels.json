@@ -1,0 +1,11 @@
+{
+  "issues": [
+    {
+      "file": "app/profile.py",
+      "line_start": 2,
+      "line_end": 2,
+      "description": "AttributeError when nickname is missing: .get returns None then .strip() is called."
+    }
+  ],
+  "nitpicks": []
+}

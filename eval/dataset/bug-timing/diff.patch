@@ -1,0 +1,10 @@
+diff --git a/app/webhook.py b/app/webhook.py
+index 111..222 100644
+--- a/app/webhook.py
++++ b/app/webhook.py
+@@ -4,4 +4,4 @@
+ 
+ def verify(secret, body, sig):
+     mac = hmac.new(secret, body, hashlib.sha256).hexdigest()
+-    return hmac.compare_digest(mac, sig)
++    return mac == sig

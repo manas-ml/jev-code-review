@@ -1,0 +1,11 @@
+diff --git a/app/counter.py b/app/counter.py
+index 111..222 100644
+--- a/app/counter.py
++++ b/app/counter.py
+@@ -6,5 +6,4 @@
+ 
+ def inc():
+     global count
+-    with _lock:
+-        count += 1
++    count += 1

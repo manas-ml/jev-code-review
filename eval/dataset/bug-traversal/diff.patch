@@ -1,0 +1,10 @@
+diff --git a/app/files.py b/app/files.py
+index 111..222 100644
+--- a/app/files.py
++++ b/app/files.py
+@@ -4,4 +4,4 @@
+ 
+ 
+ def path_for(name):
+-    return os.path.join(ROOT, os.path.basename(name))
++    return os.path.join(ROOT, name)

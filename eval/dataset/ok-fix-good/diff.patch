@@ -1,0 +1,8 @@
+diff --git a/app/first.py b/app/first.py
+index 111..222 100644
+--- a/app/first.py
++++ b/app/first.py
+@@ -1,2 +1,2 @@
+ def first(xs):
+-    return xs[0]
++    return xs[0] if xs else None

@@ -1,0 +1,8 @@
+diff --git a/app/timeouts.py b/app/timeouts.py
+index 111..222 100644
+--- a/app/timeouts.py
++++ b/app/timeouts.py
+@@ -1,2 +1,2 @@
+ def to_ms(seconds):
+-    return seconds * 1000
++    return seconds * 100

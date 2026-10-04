@@ -1,0 +1,4 @@
+{
+  "title": "Make sync resilient",
+  "description": "Do not crash on sync errors."
+}

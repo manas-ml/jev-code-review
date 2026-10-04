@@ -1,0 +1,8 @@
+diff --git a/app/profile.py b/app/profile.py
+index 111..222 100644
+--- a/app/profile.py
++++ b/app/profile.py
+@@ -1,2 +1,2 @@
+ def display(user):
+-    return user["name"]
++    return user.get("nickname").strip() or user["name"]

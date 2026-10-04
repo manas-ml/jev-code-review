@@ -1,0 +1,11 @@
+diff --git a/app/orders.py b/app/orders.py
+index 111..222 100644
+--- a/app/orders.py
++++ b/app/orders.py
+@@ -1,2 +1,5 @@
+ def list_orders(db):
+-    return db.query("SELECT * FROM orders")
++    orders = db.query("SELECT * FROM orders")
++    for o in orders:
++        o["customer"] = db.query(f"SELECT name FROM customers WHERE id = {o['customer_id']}")[0]
++    return orders
