@@ -6,9 +6,16 @@ name: Jev code review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  # Manual trigger: Actions tab > "Jev code review" > Run workflow, enter a PR number.
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review
+        required: true
+        type: string
 
 concurrency:
-  group: code-review-${{ github.event.pull_request.number }}
+  group: code-review-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: true
 
 permissions:
@@ -18,12 +25,20 @@ permissions:
 jobs:
   review:
     if: >-
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.draft == false &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Validate PR number
+        run: '[[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "bad PR number"; exit 1; }'
+
       - uses: actions/checkout@v4  # PR merge commit; agents read it via --repo (read-only)
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/merge', inputs.pr_number) || '' }}
 
       - uses: astral-sh/setup-uv@v5
         with:
@@ -41,17 +56,17 @@ jobs:
           MIN_SEVERITY: ${{ vars.REVIEW_MIN_SEVERITY || '3' }}
         run: >-
           uv run codereview review
-          --pr "${{ github.event.pull_request.html_url }}"
+          --pr "${{ github.server_url }}/${{ github.repository }}/pull/$PR_NUMBER"
           --pipeline jev
           --repo "$GITHUB_WORKSPACE"
           --min-severity "$MIN_SEVERITY"
-          --run-id "pr-${{ github.event.pull_request.number }}"
+          --run-id "pr-$PR_NUMBER"
           --post
 
       - name: Upload run artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: review-pr-${{ github.event.pull_request.number }}
+          name: review-pr-${{ env.PR_NUMBER }}
           path: runs/
           retention-days: 14

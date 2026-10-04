@@ -53,6 +53,8 @@ Depth: `deep` runs agents and verifier with repo tools; `light` runs without too
 `.github/workflows/code-review.yml` runs `codereview review --pipeline jev --post` on every
 non-draft, same-repo PR (opened / synchronize / reopened / ready_for_review) and posts a review.
 
+Manual run: Actions > "Jev code review" > Run workflow > enter a PR number.
+
 Setup: add the repo secret `OPENROUTER_API_KEY` (Settings > Secrets and variables > Actions, or
 `gh secret set OPENROUTER_API_KEY`). `GITHUB_TOKEN` is provided by Actions (needs
 `pull-requests: write`, set in the workflow).
