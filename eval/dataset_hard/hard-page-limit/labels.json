@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "api/orders.py",
+      "line_start": 13,
+      "line_end": 13,
+      "description": "limit is unbounded (limit=10000000 dumps the table / DoS); negative breaks query"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "api/orders.py",
+      "line_start": 15,
+      "line_end": 15,
+      "description": "ORDER BY comes from a fixed mapping, not user input: not injectable"
+    }
+  ],
+  "nitpicks": []
+}

@@ -1,0 +1,18 @@
+{
+  "issues": [],
+  "must_not_flag": [
+    {
+      "file": "export/archive.py",
+      "line_start": 14,
+      "line_end": 14,
+      "description": "list args, shell=False, validated name, `--` before ref: not command injection"
+    },
+    {
+      "file": "export/archive.py",
+      "line_start": 22,
+      "line_end": 22,
+      "description": "parameterized query: not SQL injection"
+    }
+  ],
+  "nitpicks": []
+}

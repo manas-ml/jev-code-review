@@ -1,0 +1,23 @@
+diff --git a/tenancy/settings.py b/tenancy/settings.py
+index 111..222 100644
+--- a/tenancy/settings.py
++++ b/tenancy/settings.py
+@@ -1,7 +1,16 @@
+ from contextvars import ContextVar
++from functools import lru_cache
+ 
+ current_tenant: ContextVar[str] = ContextVar("current_tenant")
++_db = None
+ 
+ 
+-def get_setting(db, key: str) -> str:
+-    return db.fetch_setting(current_tenant.get(), key)
++def configure(db) -> None:
++    global _db
++    _db = db
++    get_setting.cache_clear()
++
++
++@lru_cache(maxsize=4096)
++def get_setting(key: str) -> str:
++    return _db.fetch_setting(current_tenant.get(), key)

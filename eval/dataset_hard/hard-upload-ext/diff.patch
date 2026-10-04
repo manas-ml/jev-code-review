@@ -1,0 +1,32 @@
+diff --git a/media/uploads.py b/media/uploads.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/media/uploads.py
+@@ -0,0 +1,26 @@
++"""Store user uploads under the media root."""
++
++from __future__ import annotations
++
++import os
++import uuid
++
++MEDIA_ROOT = "/var/media"
++ALLOWED = {"png", "jpg", "jpeg", "gif"}
++MAX_BYTES = 5 * 1024 * 1024
++
++
++def safe_target(user_id: int, filename: str) -> str:
++    user_dir = os.path.realpath(os.path.join(MEDIA_ROOT, str(user_id)))
++    target = os.path.realpath(os.path.join(user_dir, f"{uuid.uuid4().hex}-{filename}"))
++    if os.path.commonpath([user_dir, target]) != user_dir:
++        raise PermissionError("bad path")
++    return target
++
++
++def validate(filename: str, data: bytes) -> None:
++    if len(data) > MAX_BYTES:
++        raise ValueError("file too large")
++    parts = filename.split(".")
++    if len(parts) < 2 or parts[1].lower() not in ALLOWED:
++        raise ValueError("file type not allowed")

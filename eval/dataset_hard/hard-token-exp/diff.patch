@@ -1,0 +1,22 @@
+diff --git a/api/tokens.py b/api/tokens.py
+index 111..222 100644
+--- a/api/tokens.py
++++ b/api/tokens.py
+@@ -1,10 +1,15 @@
+ import hashlib
+ import hmac
+ import json
++import time
+ 
+ 
+ def verify(secret: bytes, token: str) -> dict | None:
+     body, _, sig = token.rpartition(".")
+-    if hmac.new(secret, body.encode(), hashlib.sha256).hexdigest() != sig:
++    expected = hmac.new(secret, body.encode(), hashlib.sha256).hexdigest()
++    if not hmac.compare_digest(expected, sig):
+         return None
+-    return json.loads(body)
++    claims = json.loads(body)
++    if claims.get("exp") and claims["exp"] < time.time():
++        return None
++    return claims

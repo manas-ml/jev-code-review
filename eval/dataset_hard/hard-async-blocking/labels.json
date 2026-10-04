@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "profiles/enrich.py",
+      "line_start": 13,
+      "line_end": 13,
+      "description": "blocking requests.get inside async def blocks the event loop; gather runs serially"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "profiles/enrich.py",
+      "line_start": 20,
+      "line_end": 20,
+      "description": "harmless yield; not a bug"
+    }
+  ],
+  "nitpicks": []
+}

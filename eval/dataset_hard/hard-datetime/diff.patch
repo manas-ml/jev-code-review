@@ -1,0 +1,21 @@
+diff --git a/invites/expiry.py b/invites/expiry.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/invites/expiry.py
+@@ -0,0 +1,15 @@
++"""Invite expiry. `created_at` values are stored timezone-aware in UTC."""
++
++from __future__ import annotations
++
++from datetime import datetime, timedelta
++
++TTL = timedelta(days=7)
++
++
++def expires_at(created_at: datetime) -> datetime:
++    return created_at + TTL
++
++
++def is_expired(created_at: datetime) -> bool:
++    return datetime.now() > expires_at(created_at)

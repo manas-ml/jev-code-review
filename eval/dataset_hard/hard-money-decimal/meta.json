@@ -1,0 +1,4 @@
+{
+  "title": "Move invoices to Decimal",
+  "description": "Use Decimal for invoice math."
+}

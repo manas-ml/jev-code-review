@@ -1,0 +1,4 @@
+{
+  "title": "Support YAML pipeline configs",
+  "description": "Load pipeline definitions from YAML."
+}

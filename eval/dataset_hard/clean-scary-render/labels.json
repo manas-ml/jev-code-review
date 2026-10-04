@@ -1,0 +1,18 @@
+{
+  "issues": [],
+  "must_not_flag": [
+    {
+      "file": "web/bio.py",
+      "line_start": 13,
+      "line_end": 13,
+      "description": "Markup.format escapes arguments: not XSS"
+    },
+    {
+      "file": "web/bio.py",
+      "line_start": 18,
+      "line_end": 18,
+      "description": "realpath + commonpath: not path traversal"
+    }
+  ],
+  "nitpicks": []
+}

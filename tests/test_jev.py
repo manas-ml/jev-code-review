@@ -73,13 +73,9 @@ async def test_triage_request_shape_and_parsing(settings):
         "lacks_test_coverage",
         "perf_sensitive",
     }
-    assert req["questions"]["risk"]["criteria"] == [
-        "trivial",
-        "low",
-        "moderate",
-        "high",
-        "critical",
-    ]
+    risk = req["questions"]["risk"]["criteria"]
+    assert len(risk) == 5 and risk[0].startswith("trivial: ") and risk[4].startswith("critical: ")
+    assert set(req["questions"]["trivial"]["criteria"]) == {"true", "false"}
     assert "ignore" in req["questions"]["trivial"]["instructions"].lower()
     assert req["questions"]["change_type"]["criteria"]["dependency_bump"]
     assert res.change_type == "bugfix" and res.risk.value == 2.4

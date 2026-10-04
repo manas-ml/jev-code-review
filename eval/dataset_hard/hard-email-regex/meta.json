@@ -1,0 +1,4 @@
+{
+  "title": "Restrict signups to corp emails",
+  "description": "Only corp.com addresses may sign up."
+}

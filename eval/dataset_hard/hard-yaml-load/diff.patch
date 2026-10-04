@@ -1,0 +1,15 @@
+diff --git a/pipelines/config.py b/pipelines/config.py
+index 111..222 100644
+--- a/pipelines/config.py
++++ b/pipelines/config.py
+@@ -1,6 +1,10 @@
+ import json
++
++import yaml
+ 
+ 
+ def load(path: str) -> dict:
+     with open(path) as f:
++        if path.endswith((".yml", ".yaml")):
++            return yaml.load(f, Loader=yaml.Loader)
+         return json.load(f)

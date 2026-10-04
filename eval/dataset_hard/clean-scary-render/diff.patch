@@ -1,0 +1,26 @@
+diff --git a/web/bio.py b/web/bio.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/web/bio.py
+@@ -0,0 +1,20 @@
++"""Render user-provided bios safely."""
++
++from __future__ import annotations
++
++import os
++
++from markupsafe import Markup, escape
++
++TEMPLATES = os.path.realpath("/srv/templates")
++
++
++def render_bio(bio: str) -> Markup:
++    return Markup("<p>{}</p>").format(escape(bio))
++
++
++def template_path(name: str) -> str:
++    path = os.path.realpath(os.path.join(TEMPLATES, name))
++    if os.path.commonpath([TEMPLATES, path]) != TEMPLATES:
++        raise PermissionError("template outside root")
++    return path

@@ -29,7 +29,8 @@ async def verify_finding(
     tracer: Tracer | None = None,
     *,
     use_tools: bool = True,
-) -> VerifierResult:
+) -> VerifierResult | None:
+    """Returns None if the verifier itself failed (caller keeps the finding, flagged)."""
     tools = RepoTools(ctx.repo_root) if ctx.repo_root and use_tools else None
     user = "\n\n".join(
         [
@@ -54,5 +55,8 @@ async def verify_finding(
             tools=tools,
         )
     except LLMError as e:
-        # Fail safe: an unusable verifier means the finding is dropped as unclear, and logged.
-        return VerifierResult(verdict="unclear", reasoning=f"verifier error: {e}")
+        if tracer is not None:
+            tracer.extra.setdefault("verifier_errors", []).append(
+                {"finding": finding.id, "error": str(e)}
+            )
+        return None

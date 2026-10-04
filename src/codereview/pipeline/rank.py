@@ -1,4 +1,4 @@
-"""Rank by severity, then gate probability; cap inline comments."""
+"""Rank by effective severity, then gate probability; cap inline comments."""
 
 from __future__ import annotations
 
@@ -6,8 +6,7 @@ from codereview.models import FindingRecord
 
 
 def rank_key(r: FindingRecord) -> tuple[float, float, str]:
-    sev = r.gate.severity.value if r.gate else 0.0
-    return (-sev, -(r.gate_score or 0.0), r.finding.id)
+    return (-(r.severity or 0.0), -(r.gate_score or 0.0), r.finding.id)
 
 
 def rank_and_cap(

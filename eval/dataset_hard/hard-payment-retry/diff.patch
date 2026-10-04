@@ -1,0 +1,26 @@
+diff --git a/payments/client.py b/payments/client.py
+index 111..222 100644
+--- a/payments/client.py
++++ b/payments/client.py
+@@ -1,7 +1,17 @@
++import random
++import time
++
+ import httpx
+ 
+ 
+-def charge(client: httpx.Client, customer: str, cents: int) -> dict:
+-    r = client.post("/charges", json={"customer": customer, "amount": cents})
+-    r.raise_for_status()
+-    return r.json()
++def charge(client: httpx.Client, customer: str, cents: int, attempts: int = 3) -> dict:
++    for i in range(attempts):
++        try:
++            r = client.post("/charges", json={"customer": customer, "amount": cents})
++            r.raise_for_status()
++            return r.json()
++        except httpx.TimeoutException:
++            if i == attempts - 1:
++                raise
++            time.sleep((2**i) + random.random())
++    raise RuntimeError("unreachable")

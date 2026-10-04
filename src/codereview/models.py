@@ -103,7 +103,6 @@ class GateState(BaseModel):
     code_window: str
     pr_title: str
     existing_comments: list[ExistingComment] = Field(default_factory=list)
-    other_findings: list[Finding] = Field(default_factory=list)
 
 
 class GateResult(BaseModel):
@@ -126,6 +125,7 @@ class RouteDecision(BaseModel):
 Disposition = Literal[
     "accepted_gate",
     "accepted_verified",
+    "accepted_unverified",
     "discarded_gate",
     "discarded_verifier",
     "dropped_unclear",
@@ -138,6 +138,8 @@ class FindingRecord(BaseModel):
     finding: Finding
     gate: GateResult | None = None
     gate_score: float | None = None
+    severity: float | None = None
+    """Effective severity (judge score after per-category caps); raw score is in `gate`."""
     disposition: Disposition
     rank: int | None = None
     reason: str = ""

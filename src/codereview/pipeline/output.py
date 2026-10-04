@@ -8,18 +8,18 @@ from pathlib import Path
 
 from codereview.judges.jev.questions import SEVERITY_LEVELS
 from codereview.models import FindingRecord, ReviewResult
-from codereview.tracing import Tracer, redact
+from codereview.tracing import Tracer, redact, redact_obj
 
 
 def severity_label(r: FindingRecord) -> str:
-    if r.gate is None:
+    if r.severity is None:
         return "unscored"
-    idx = max(0, min(len(SEVERITY_LEVELS) - 1, round(r.gate.severity.value)))
+    idx = max(0, min(len(SEVERITY_LEVELS) - 1, round(r.severity)))
     return SEVERITY_LEVELS[idx]
 
 
 def _sev(r: FindingRecord) -> str:
-    return f"{r.gate.severity.value:.1f}" if r.gate else "-"
+    return f"{r.severity:.1f}" if r.severity is not None else "-"
 
 
 def _conf(r: FindingRecord) -> str:
@@ -37,7 +37,9 @@ def _table(rows: list[FindingRecord]) -> list[str]:
     ]
     for r in rows:
         f = r.finding
-        verified = "yes" if r.disposition == "accepted_verified" else "gate"
+        verified = {"accepted_verified": "yes", "accepted_unverified": "FAILED"}.get(
+            r.disposition, "gate"
+        )
         out.append(
             f"| {r.rank} | {severity_label(r)} | {_sev(r)} | {_conf(r)} | "
             f"`{f.file}:{f.line}` | {_cell(f.title)} | {f.agent} | {verified} |"
@@ -115,8 +117,9 @@ def render_markdown(result: ReviewResult) -> str:
 
 def write_outputs(run_dir: Path, result: ReviewResult, tracer: Tracer) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
+    # redact the data, not the serialized JSON: regexes on JSON text can eat escapes
     (run_dir / "review.json").write_text(
-        redact(json.dumps(result.model_dump(), indent=2, default=str))
+        json.dumps(redact_obj(result.model_dump()), indent=2, default=str)
     )
     (run_dir / "review.md").write_text(render_markdown(result))
     tracer.write(run_dir / "trace.json")
@@ -126,7 +129,7 @@ BODY_LIMIT = 60_000
 
 
 def _severity(r: FindingRecord) -> float:
-    return r.gate.severity.value if r.gate else 0.0
+    return r.severity or 0.0
 
 
 def split_for_posting(
@@ -145,7 +148,8 @@ def split_for_posting(
     for r in [*result.inline, *result.overflow]:
         f = r.finding
         visible = commentable is None or f.line in commentable.get(f.file, set())
-        if _severity(r) >= min_severity and visible and len(comments) < cap:
+        verified = r.disposition != "accepted_unverified"  # never post unverified inline
+        if _severity(r) >= min_severity and visible and verified and len(comments) < cap:
             comments.append(
                 {
                     "path": f.file,

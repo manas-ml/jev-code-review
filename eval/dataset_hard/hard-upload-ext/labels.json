@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "media/uploads.py",
+      "line_start": 25,
+      "line_end": 25,
+      "description": "checks the second dot-segment, so photo.png.php is accepted; must use the last"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "media/uploads.py",
+      "line_start": 16,
+      "line_end": 16,
+      "description": "realpath + commonpath containment check is correct"
+    }
+  ],
+  "nitpicks": []
+}

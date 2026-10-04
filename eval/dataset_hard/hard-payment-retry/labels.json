@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "payments/client.py",
+      "line_start": 10,
+      "line_end": 10,
+      "description": "retries a non-idempotent charge after a timeout with no idempotency key: double charge"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "payments/client.py",
+      "line_start": 16,
+      "line_end": 16,
+      "description": "exponential backoff with jitter is correct (sync code, sleep is fine)"
+    }
+  ],
+  "nitpicks": []
+}

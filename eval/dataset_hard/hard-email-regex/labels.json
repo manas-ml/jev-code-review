@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "auth/signup.py",
+      "line_start": 7,
+      "line_end": 7,
+      "description": "regex is not anchored at the end: a@corp.com.evil.io passes the allow-list"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "auth/signup.py",
+      "line_start": 11,
+      "line_end": 11,
+      "description": "normalizing case and whitespace is correct"
+    }
+  ],
+  "nitpicks": []
+}

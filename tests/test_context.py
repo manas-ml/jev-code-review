@@ -53,3 +53,17 @@ def test_file_chunks_split():
         "diff --git a/a b/a\n" + "+x\n" * 100 + "diff --git a/b b/b\n" + "+y\n" * 100
     )
     assert len(file_chunks(ctx, max_chars=300)) == 2
+
+
+def test_number_patch_shows_new_file_lines():
+    from codereview.context.builder import commentable_lines, number_patch
+
+    patch = "diff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1,3 +10,4 @@\n a\n-b\n+c\n+d\n e\n"
+    out = number_patch(patch).splitlines()
+    assert out[4] == "   10   a"
+    assert out[5] == "      - b"
+    assert out[6] == "   11 + c" and out[8] == "   13   e"
+    assert out[2] == "+++ b/f"  # headers untouched
+    ctx = load("bugfix")
+    lines = commentable_lines(ctx.files)["app/pricing.py"]
+    assert 13 in lines and 21 in lines and 25 not in lines

@@ -15,11 +15,6 @@ def render_gate_text(state: GateState) -> str:
     existing = "\n".join(
         f"{c.file}:{c.line}: {c.body}" for c in state.existing_comments if c.file == f.file
     )
-    others = "\n".join(
-        f"{o.file}:{o.line}: {o.title}"
-        for o in state.other_findings
-        if o.id != f.id and o.file == f.file
-    )
     return "\n\n".join(
         [
             UNTRUSTED_NOTICE,
@@ -27,6 +22,5 @@ def render_gate_text(state: GateState) -> str:
             delimit("FINDING", finding),
             delimit("CODE", state.code_window),
             delimit("EXISTING_COMMENTS", existing),
-            delimit("OTHER_FINDINGS", others),
         ]
     )

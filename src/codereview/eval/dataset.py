@@ -29,6 +29,8 @@ class Nitpick(BaseModel):
 
 class Labels(BaseModel):
     issues: list[LabeledIssue] = Field(default_factory=list)
+    must_not_flag: list[LabeledIssue] = Field(default_factory=list)
+    """Decoys: code that looks wrong but is correct. Commenting here is a false positive."""
     nitpicks: list[Nitpick] = Field(default_factory=list)
 
 

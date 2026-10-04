@@ -1,0 +1,27 @@
+diff --git a/profiles/enrich.py b/profiles/enrich.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/profiles/enrich.py
+@@ -0,0 +1,21 @@
++"""Enrich user profiles with CRM data."""
++
++from __future__ import annotations
++
++import asyncio
++
++import requests
++
++CRM_URL = "https://crm.internal/api/contacts/"
++
++
++async def fetch_contact(email: str) -> dict:
++    resp = requests.get(CRM_URL + email, timeout=5)
++    resp.raise_for_status()
++    return resp.json()
++
++
++async def enrich_all(emails: list[str]) -> list[dict]:
++    results = await asyncio.gather(*(fetch_contact(e) for e in emails))
++    await asyncio.sleep(0)
++    return list(results)

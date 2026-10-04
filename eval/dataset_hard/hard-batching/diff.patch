@@ -1,0 +1,18 @@
+diff --git a/mail/batch.py b/mail/batch.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/mail/batch.py
+@@ -0,0 +1,12 @@
++"""Batch helper for the mail sender."""
++
++from __future__ import annotations
++
++from collections.abc import Iterator
++
++
++def batches(items: list[str], size: int = 100) -> Iterator[list[str]]:
++    if size <= 0:
++        raise ValueError("size must be positive")
++    for i in range(0, len(items) - size, size):
++        yield items[i : i + size]

@@ -1,0 +1,17 @@
+diff --git a/auth/signup.py b/auth/signup.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/auth/signup.py
+@@ -0,0 +1,11 @@
++"""Signup policy."""
++
++from __future__ import annotations
++
++import re
++
++CORP = re.compile(r"^[\w.+-]+@corp\.com")
++
++
++def allowed(email: str) -> bool:
++    return CORP.match(email.strip().lower()) is not None

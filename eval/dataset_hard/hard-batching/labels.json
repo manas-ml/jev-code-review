@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "mail/batch.py",
+      "line_start": 11,
+      "line_end": 11,
+      "description": "stop bound drops the final batch (and everything when len(items) <= size)"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "mail/batch.py",
+      "line_start": 9,
+      "line_end": 9,
+      "description": "input validation is correct"
+    }
+  ],
+  "nitpicks": []
+}

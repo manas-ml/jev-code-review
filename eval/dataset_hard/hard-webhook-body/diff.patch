@@ -1,0 +1,22 @@
+diff --git a/hooks/partner.py b/hooks/partner.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/hooks/partner.py
+@@ -0,0 +1,16 @@
++"""Partner webhook verification."""
++
++from __future__ import annotations
++
++import hashlib
++import hmac
++import json
++
++
++def verify(secret: bytes, raw_body: bytes, signature: str) -> dict | None:
++    payload = json.loads(raw_body)
++    canonical = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
++    expected = hmac.new(secret, canonical, hashlib.sha256).hexdigest()
++    if not hmac.compare_digest(expected, signature):
++        return None
++    return payload

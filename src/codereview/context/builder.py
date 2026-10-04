@@ -41,6 +41,46 @@ def parse_unified_diff(diff: str) -> list[FileDiff]:
     return files
 
 
+_HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+
+
+def walk_patch(patch: str) -> list[tuple[int | None, str]]:
+    """Pair each patch line with its new-file line number (None for headers and deletions)."""
+    out: list[tuple[int | None, str]] = []
+    n = 0
+    in_hunk = False
+    for ln in patch.splitlines():
+        m = _HUNK.match(ln)
+        if m:
+            n, in_hunk = int(m.group(1)), True
+            out.append((None, ln))
+        elif in_hunk and ln.startswith(("+", " ")) and not ln.startswith("+++"):
+            out.append((n, ln))
+            n += 1
+        else:
+            out.append((None, ln))
+    return out
+
+
+def number_patch(patch: str) -> str:
+    """Prefix added/context lines with their new-file line number, e.g. `   25 + code`.
+    Agents then report the number shown instead of guessing from hunk offsets."""
+    lines = []
+    for n, ln in walk_patch(patch):
+        if n is not None:
+            lines.append(f"{n:>5} {ln[:1]} {ln[1:]}")
+        elif ln.startswith("-") and not ln.startswith("---"):
+            lines.append(f"{'':>5} - {ln[1:]}")
+        else:
+            lines.append(ln)
+    return "\n".join(lines)
+
+
+def commentable_lines(files: list[FileDiff]) -> dict[str, set[int]]:
+    """New-file line numbers visible in the diff (added + context lines)."""
+    return {f.path: {n for n, _ in walk_patch(f.patch) if n is not None} for f in files}
+
+
 def delimit(label: str, body: str) -> str:
     """Wrap untrusted content in a clearly delimited data block."""
     return f"<<<BEGIN UNTRUSTED {label}>>>\n{body}\n<<<END UNTRUSTED {label}>>>"

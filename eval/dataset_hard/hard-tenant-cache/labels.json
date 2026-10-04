@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "tenancy/settings.py",
+      "line_start": 14,
+      "line_end": 14,
+      "description": "cache key is only `key`; tenant comes from a contextvar, so tenants share values"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "tenancy/settings.py",
+      "line_start": 11,
+      "line_end": 11,
+      "description": "clearing the cache on reconfigure is correct"
+    }
+  ],
+  "nitpicks": []
+}

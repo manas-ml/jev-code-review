@@ -8,7 +8,7 @@ from codereview.context.builder import triage_state
 from codereview.judges.claude_judge import LLMJudge
 from codereview.llm.client import OpenRouterClient, chat_validated
 from codereview.models import Finding, FindingRecord, GateResult, Scored
-from codereview.pipeline.dedupe import dedupe
+from codereview.pipeline.dedupe import cluster, pick_representative
 from codereview.pipeline.rank import rank_and_cap
 from codereview.tracing import Tracer, redact
 from conftest import FakeLLM, load
@@ -101,16 +101,33 @@ def _rec(id, line, title, sev=3.0, score=0.9):
         actionable=Scored(value=0.9),
         duplicate=Scored(value=0),
     )
-    return FindingRecord(finding=f, gate=g, gate_score=score, disposition="accepted_gate")
+    return FindingRecord(
+        finding=f, gate=g, gate_score=score, severity=sev, disposition="accepted_gate"
+    )
 
 
-def test_dedupe_by_line_and_title():
-    a = _rec("a", 10, "Null pointer dereference in handler")
-    b = _rec("b", 12, "Possible null pointer dereference")
-    c = _rec("c", 30, "Null pointer dereference in handler")  # too far
-    d = _rec("d", 11, "Unrelated sql injection")
-    kept, dropped = dedupe([a, b, c, d], 3)
-    assert {r.finding.id for r in kept} == {"a", "c", "d"} and dropped[0].finding.id == "b"
+def test_cluster_by_line_and_title_order_independent():
+    a = _rec("a", 10, "Null pointer dereference in handler").finding
+    b = _rec("b", 12, "Possible null pointer dereference").finding
+    c = _rec("c", 30, "Null pointer dereference in handler").finding  # too far
+    d = _rec("d", 11, "Unrelated sql injection").finding
+    groups = cluster([a, b, c, d], 3)
+    assert sorted(sorted(f.id for f in g) for g in groups) == [["a", "b"], ["c"], ["d"]]
+    assert sorted(sorted(f.id for f in g) for g in cluster([d, c, b, a], 3)) == [
+        ["a", "b"],
+        ["c"],
+        ["d"],
+    ]
+
+
+def test_representative_prefers_grounded_evidence_then_agent():
+    base = _rec("x", 10, "t").finding
+    ungrounded = base.model_copy(update={"id": "u", "agent": "security", "evidence": "nope zz"})
+    grounded = base.model_copy(update={"id": "g", "agent": "tests", "evidence": "x = 1"})
+    assert pick_representative([ungrounded, grounded], lambda f: "x = 1\n").id == "g"
+    sec = base.model_copy(update={"id": "s", "agent": "security"})
+    cor = base.model_copy(update={"id": "c", "agent": "correctness"})
+    assert pick_representative([cor, sec], lambda f: "").id == "s"
 
 
 def test_rank_orders_by_severity_then_score_and_caps():
@@ -195,3 +212,14 @@ async def test_post_review_falls_back_to_body_on_422():
     import json as _j
 
     assert _j.loads(route.calls[1].request.read()) == {"body": "fallback", "event": "COMMENT"}
+
+
+def test_review_json_stays_valid_when_redacting(tmp_path):
+    from codereview.pipeline.output import write_outputs
+
+    rec = _rec("a", 1, "t")
+    rec.finding.suggested_fix = 'secret = os.environ["SESSION_SECRET"]  # api_key="abcdefghijkl"'
+    res = _result_with([rec])
+    write_outputs(tmp_path, res, Tracer("jev", "p"))
+    data = json.loads((tmp_path / "review.json").read_text())  # must parse
+    assert "abcdefghijkl" not in json.dumps(data)

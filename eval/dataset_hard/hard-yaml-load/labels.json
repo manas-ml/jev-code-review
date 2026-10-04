@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "pipelines/config.py",
+      "line_start": 9,
+      "line_end": 9,
+      "description": "yaml.Loader can construct arbitrary Python objects from user configs: use safe_load"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "pipelines/config.py",
+      "line_start": 10,
+      "line_end": 10,
+      "description": "json.load is safe"
+    }
+  ],
+  "nitpicks": []
+}

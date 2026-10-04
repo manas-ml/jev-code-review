@@ -1,0 +1,25 @@
+{
+  "issues": [
+    {
+      "file": "billing/invoice.py",
+      "line_start": 11,
+      "line_end": 11,
+      "description": "Decimal(float) carries binary error (2.675 -> 2.67); parse from str"
+    },
+    {
+      "file": "billing/invoice.py",
+      "line_start": 22,
+      "line_end": 22,
+      "description": "shares do not sum to total (10.00/3 -> 3x3.33 = 9.99, or overcharges)"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "billing/invoice.py",
+      "line_start": 15,
+      "line_end": 15,
+      "description": "Decimal * int with explicit quantize is correct"
+    }
+  ],
+  "nitpicks": []
+}

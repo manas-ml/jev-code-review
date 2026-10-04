@@ -1,0 +1,26 @@
+diff --git a/api/orders.py b/api/orders.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/api/orders.py
+@@ -0,0 +1,20 @@
++"""Order search handler."""
++
++from __future__ import annotations
++
++from typing import Any
++
++SORTS = {"newest": "created_at DESC", "oldest": "created_at ASC", "total": "total DESC"}
++
++
++def search(cur: Any, tenant_id: str, params: dict[str, str]) -> list[Any]:
++    order_by = SORTS.get(params.get("sort", "newest"), SORTS["newest"])
++    page = max(1, int(params.get("page", "1")))
++    limit = int(params.get("limit", "50"))
++    cur.execute(
++        f"SELECT id, total FROM orders WHERE tenant_id = %s ORDER BY {order_by} "
++        "LIMIT %s OFFSET %s",
++        (tenant_id, limit, (page - 1) * limit),
++    )
++    rows: list[Any] = cur.fetchall()
++    return rows

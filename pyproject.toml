@@ -39,6 +39,9 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
 ignore = ["UP047", "ASYNC230", "ASYNC240"]
 
+[tool.ruff.lint.per-file-ignores]
+"scripts/make_*dataset.py" = ["E501"]  # embedded sample source code
+
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]

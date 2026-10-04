@@ -149,3 +149,59 @@ async def test_partial_agent_failure_is_a_warning(settings):
         Tracer("jev", "b"),
     )
     assert not res.errors and any("failed" in w for w in res.warnings)
+
+
+async def test_one_gate_call_per_cluster(settings):
+    """Two agents report the same bug: one cluster, one gate call, one deduped record."""
+
+    class CountingJudge(MockJevJudge):
+        def __init__(self):
+            self.gates = 0
+
+        async def gate(self, state, tracer=None):
+            self.gates += 1
+            return await super().gate(state, tracer)
+
+    def h(stage, messages):
+        if stage in ("agent:correctness", "agent:tests"):
+            return finding_json()
+        return default_handler(stage, messages)
+
+    judge = CountingJudge()
+    res = await run_pipeline("jev", load("bugfix"), FakeLLM(h), judge, settings, Tracer("j", "b"))
+    assert judge.gates == 1
+    assert len(res.inline) == 1 and res.inline[0].finding.agent == "correctness"
+    assert [r.disposition for r in res.discarded] == ["deduped"]
+
+
+async def test_severity_cap_applies_to_tests_agent(settings):
+    def h(stage, messages):
+        if stage == "agent:tests":
+            return finding_json()
+        if stage.startswith("agent:"):
+            return '{"findings": []}'
+        return default_handler(stage, messages)
+
+    res = await run_pipeline(
+        "jev", load("bugfix"), FakeLLM(h), MockJevJudge(), settings, Tracer("j", "b")
+    )
+    rec = res.inline[0]
+    assert rec.gate.severity.value == 3.0  # raw judge score kept
+    assert rec.severity == settings.severity_caps["tests"]  # effective score capped
+
+
+async def test_verifier_failure_keeps_finding_unverified(settings):
+    def h(stage, messages):
+        if stage == "verifier":
+            return "not json at all"
+        return default_handler(stage, messages)
+
+    res = await run_pipeline(
+        "jev", load("bugfix"), FakeLLM(h), FailingJudge(), settings, Tracer("j", "b")
+    )
+    assert [r.disposition for r in res.inline] == ["accepted_unverified"]
+    assert any("verifier failed" in w for w in res.warnings)
+    from codereview.pipeline.output import split_for_posting
+
+    comments, rest = split_for_posting(res, 0.0, None, 10)
+    assert comments == [] and len(rest) == 1  # never posted inline

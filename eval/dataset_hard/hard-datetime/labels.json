@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "invites/expiry.py",
+      "line_start": 15,
+      "line_end": 15,
+      "description": "comparing naive datetime.now() with an aware UTC datetime raises TypeError"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "invites/expiry.py",
+      "line_start": 11,
+      "line_end": 11,
+      "description": "timedelta addition is correct"
+    }
+  ],
+  "nitpicks": []
+}

@@ -1,0 +1,24 @@
+diff --git a/pricing/discounts.py b/pricing/discounts.py
+index 111..222 100644
+--- a/pricing/discounts.py
++++ b/pricing/discounts.py
+@@ -1,6 +1,14 @@
++MEMBER_RATE = 0.9
++COUPONS = {"SAVE5": 5.0}
++
++
++def _member(total: float, member: bool) -> float:
++    return total * MEMBER_RATE if member else total
++
++
++def _coupon(total: float, coupon: str | None) -> float:
++    return total - COUPONS.get(coupon or "", 0.0)
++
++
+ def price(total: float, member: bool, coupon: str | None) -> float:
+-    if member:
+-        total = total * 0.9
+-    if coupon == "SAVE5":
+-        total = total - 5
+-    return max(total, 0.0)
++    return max(_coupon(_member(total, member), coupon), 0.0)

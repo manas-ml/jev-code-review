@@ -13,7 +13,7 @@ from pathlib import Path
 from codereview.agents import REGISTRY
 from codereview.agents.base import run_agent
 from codereview.config import Settings
-from codereview.context.builder import file_chunks, triage_state
+from codereview.context.builder import file_chunks, number_patch, triage_state
 from codereview.judges.base import Judge
 from codereview.llm.client import LLM
 from codereview.models import (
@@ -26,7 +26,7 @@ from codereview.models import (
     ReviewResult,
     TriageResult,
 )
-from codereview.pipeline.dedupe import dedupe
+from codereview.pipeline.dedupe import cluster, pick_representative
 from codereview.pipeline.rank import rank_and_cap
 from codereview.pipeline.routing import decide_gate, route
 from codereview.pipeline.verifier import verify_finding
@@ -50,7 +50,7 @@ def code_window(ctx: ReviewContext, f: Finding, radius: int = 30) -> str:
             pass
     for fd in ctx.files:
         if fd.path == f.file:
-            return fd.patch
+            return number_patch(fd.patch)
     return ""
 
 
@@ -112,19 +112,35 @@ async def run_pipeline(
         result.warnings.append("triage judge failed; fell back to a full deep review")
     tracer.extra["n_candidates"] = len(candidates)
 
-    # ---- gate
+    # ---- cluster duplicates, then gate one representative per cluster
+    groups = cluster(candidates, settings.dedupe_line_window)
+    reps: list[Finding] = []
+    deduped: list[FindingRecord] = []
+    for g_ in groups:
+        rep = pick_representative(g_, lambda f: code_window(ctx, f))
+        reps.append(rep)
+        deduped += [
+            FindingRecord(finding=f, disposition="deduped", reason=f"duplicate of {rep.id}")
+            for f in g_
+            if f is not rep
+        ]
+    tracer.extra["n_clusters"] = len(reps)
+
     records: list[FindingRecord] = []
     discarded: list[FindingRecord] = []
     async with tracer.stage("gate"):
 
-        async def gate_one(idx: int, f: Finding) -> FindingRecord:
+        def effective(f: Finding, g: GateResult | None) -> float | None:
+            if g is None:
+                return None
+            return min(g.severity.value, settings.severity_caps.get(f.agent, 4.0))
+
+        async def gate_one(f: Finding) -> FindingRecord:
             state = GateState(
                 finding=f,
                 code_window=code_window(ctx, f),
                 pr_title=ctx.title,
                 existing_comments=ctx.existing_comments,
-                # only earlier findings, so one of a duplicate cluster survives
-                other_findings=candidates[:idx],
             )
             g: GateResult | None = None
             err = ""
@@ -135,24 +151,18 @@ async def run_pipeline(
                 err = repr(e)
             if g is None:  # fail safe: escalate to the verifier, never silently discard
                 return await _verify(f, state, None, f"gate failed ({err}); escalated")
-            action, why = decide_gate(g, settings.gate)
-            if action == "discard":
-                return FindingRecord(
-                    finding=f,
-                    gate=g,
-                    gate_score=g.is_real_defect.value,
-                    disposition="discarded_gate",
-                    reason=why,
-                )
-            if action == "accept":
-                return FindingRecord(
-                    finding=f,
-                    gate=g,
-                    gate_score=g.is_real_defect.value,
-                    disposition="accepted_gate",
-                    reason=why,
-                )
-            return await _verify(f, state, g, why)
+            sev = effective(f, g)
+            action, why = decide_gate(g, settings.gate_for(pipeline), severity=sev)
+            if action == "verify":
+                return await _verify(f, state, g, why)
+            return FindingRecord(
+                finding=f,
+                gate=g,
+                gate_score=g.is_real_defect.value,
+                severity=sev,
+                disposition="discarded_gate" if action == "discard" else "accepted_gate",
+                reason=why,
+            )
 
         async def _verify(
             f: Finding, state: GateState, g: GateResult | None, why: str
@@ -161,35 +171,49 @@ async def run_pipeline(
                 v = await verify_finding(
                     f, ctx, state.code_window, llm, settings, tracer, use_tools=use_tools
                 )
-            score = g.is_real_defect.value if g else None
-            if v.verdict == "confirmed":
-                return FindingRecord(
-                    finding=f,
-                    gate=g,
-                    gate_score=score,
-                    disposition="accepted_verified",
-                    reason=f"{why}; verifier confirmed: {v.reasoning}",
-                )
-            disp = "discarded_verifier" if v.verdict == "refuted" else "dropped_unclear"
-            return FindingRecord(
+            base = FindingRecord(
                 finding=f,
                 gate=g,
-                gate_score=score,
-                disposition=disp,
-                reason=f"{why}; verifier {v.verdict}: {v.reasoning}",
+                gate_score=g.is_real_defect.value if g else None,
+                severity=effective(f, g),
+                disposition="accepted_verified",
+            )
+            if v is None:  # verifier itself failed: keep the finding, flagged, never inline
+                return base.model_copy(
+                    update={
+                        "disposition": "accepted_unverified",
+                        "reason": f"{why}; verifier failed, finding kept unverified",
+                    }
+                )
+            if v.verdict == "confirmed":
+                return base.model_copy(
+                    update={"reason": f"{why}; verifier confirmed: {v.reasoning}"}
+                )
+            return base.model_copy(
+                update={
+                    "disposition": "discarded_verifier"
+                    if v.verdict == "refuted"
+                    else "dropped_unclear",
+                    "reason": f"{why}; verifier {v.verdict}: {v.reasoning}",
+                }
             )
 
-        gated = await asyncio.gather(*(gate_one(i, f) for i, f in enumerate(candidates)))
+        gated = await asyncio.gather(*(gate_one(f) for f in reps))
         for r in gated:
             (records if r.disposition.startswith("accepted") else discarded).append(r)
 
-    # ---- dedupe, rank, cap
-    kept, deduped = dedupe(records, settings.dedupe_line_window)
-    inline, overflow = rank_and_cap(kept, settings.max_inline_comments)
+    n_unverified = sum(r.disposition == "accepted_unverified" for r in records)
+    if n_unverified:
+        result.warnings.append(
+            f"verifier failed for {n_unverified} finding(s); kept as unverified, not posted inline"
+        )
+
+    # ---- rank, cap
+    inline, overflow = rank_and_cap(records, settings.max_inline_comments)
     result.inline, result.overflow = inline, overflow
     result.discarded = discarded + deduped
     result.summary = (
-        f"{len(candidates)} candidate findings -> {len(inline)} inline, "
+        f"{len(candidates)} candidate findings in {len(reps)} cluster(s) -> {len(inline)} inline, "
         f"{len(overflow)} overflow, {len(result.discarded)} discarded."
     )
     tracer.extra["findings"] = [r.model_dump() for r in [*inline, *overflow, *result.discarded]]

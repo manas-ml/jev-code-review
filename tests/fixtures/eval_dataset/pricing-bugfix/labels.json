@@ -1,1 +1,1 @@
-{"issues": [{"file": "app/pricing.py", "line_start": 22, "line_end": 22, "description": "tax() divides by len(items) where items is always empty: ZeroDivisionError"}], "nitpicks": []}
+{"issues": [{"file": "app/pricing.py", "line_start": 21, "line_end": 21, "description": "tax() divides by len(items) where items is always empty: ZeroDivisionError"}], "nitpicks": []}

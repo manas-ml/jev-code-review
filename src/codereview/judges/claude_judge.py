@@ -40,12 +40,15 @@ def _question_block(questions: tuple[Question, ...]) -> str:
     lines: list[str] = []
     for q in questions:
         if q.kind == "choice":
-            spec = f"choice, one of: {', '.join(q.options)}"
+            spec = "choice; answer with one option key"
+            rubric = [f"    {k}: {d}" for k, d in q.rubric]
         elif q.kind == "score":
-            spec = "score, integer level 0.." + str(len(q.options) - 1) + f" = {list(q.options)}"
+            spec = f"score; answer with a level 0..{len(q.rubric) - 1}"
+            rubric = [f"    {i} {k}: {d}" for i, (k, d) in enumerate(q.rubric)]
         else:
-            spec = "probability of yes, float in [0,1]"
-        lines.append(f"- {q.id} ({spec}): {q.instructions}")
+            spec = "probability that the answer is yes, float in [0,1]"
+            rubric = [f"    yes: {q.true_desc}", f"    no: {q.false_desc}"] if q.true_desc else []
+        lines += [f"- {q.id} ({spec}): {q.instructions}", *rubric]
     return "\n".join(lines)
 
 

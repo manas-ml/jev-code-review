@@ -6,8 +6,10 @@ import re
 
 import httpx
 
-from codereview.context.builder import build_context
-from codereview.models import ExistingComment, FileDiff, ReviewContext
+from codereview.context.builder import build_context, commentable_lines
+from codereview.models import ExistingComment, ReviewContext
+
+__all__ = ["commentable_lines", "fetch_pr", "parse_pr_url", "post_review"]
 
 _PR_URL = re.compile(r"github\.com/([^/]+)/([^/]+)/pull/(\d+)")
 
@@ -52,28 +54,6 @@ async def fetch_pr(url: str, token: str, repo_root: str | None = None) -> Review
         existing_comments=existing,
         repo_root=repo_root,
     )
-
-
-_HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
-
-
-def commentable_lines(files: list[FileDiff]) -> dict[str, set[int]]:
-    """New-file line numbers visible in the diff (added + context lines). GitHub rejects the
-    whole review if an inline comment targets a line outside the diff."""
-    out: dict[str, set[int]] = {}
-    for f in files:
-        lines: set[int] = set()
-        n = 0
-        in_hunk = False
-        for ln in f.patch.splitlines():
-            m = _HUNK.match(ln)
-            if m:
-                n, in_hunk = int(m.group(1)), True
-            elif in_hunk and ln.startswith(("+", " ")):
-                lines.add(n)
-                n += 1
-        out[f.path] = lines
-    return out
 
 
 async def post_review(

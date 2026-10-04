@@ -1,10 +1,13 @@
 name: Jev code review
 
 # Runs the Jev pipeline on every PR in THIS repo and posts a review.
-# Uses `pull_request` (not pull_request_target) so untrusted fork code never gets secrets;
-# fork PRs are skipped because they have no access to OPENROUTER_API_KEY anyway.
+#
+# Security model: `pull_request_target` runs THIS workflow file and the reviewer code from the
+# base branch, never from the PR, so a PR cannot change what runs with the secrets. The PR is
+# checked out only as data (diff + read-only agent tools); nothing from it is installed or
+# executed. Fork PRs are still skipped to avoid spending API credit on untrusted PRs.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
   # Manual trigger: Actions tab > "Jev code review" > Run workflow, enter a PR number.
   workflow_dispatch:
@@ -36,15 +39,29 @@ jobs:
       - name: Validate PR number
         run: '[[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "bad PR number"; exit 1; }'
 
-      - uses: actions/checkout@v4  # PR merge commit; agents read it via --repo (read-only)
+      # The reviewer runs from the trusted default branch. The PR is checked out separately and
+      # is only ever read as data (diff + read-only agent tools), so a PR that edits the reviewer
+      # cannot run its own code with the secrets.
+      - name: Check out reviewer (trusted default branch)
+        uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/merge', inputs.pr_number) || '' }}
+          ref: ${{ github.event.repository.default_branch }}
+          path: tool
+          persist-credentials: false
+
+      - name: Check out PR (data only)
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ env.PR_NUMBER }}/merge
+          path: pr
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          cache-dependency-glob: tool/uv.lock
 
-      - run: uv sync --frozen
+      - run: uv sync --frozen --directory tool
 
       - name: Review PR (Jev pipeline)
         env:
@@ -54,11 +71,12 @@ jobs:
           # Inline comments only for findings at or above this severity (0 cosmetic .. 4 critical).
           # Raise/lower via a repo variable without editing this file.
           MIN_SEVERITY: ${{ vars.REVIEW_MIN_SEVERITY || '3' }}
+        working-directory: tool
         run: >-
           uv run codereview review
           --pr "${{ github.server_url }}/${{ github.repository }}/pull/$PR_NUMBER"
           --pipeline jev
-          --repo "$GITHUB_WORKSPACE"
+          --repo "$GITHUB_WORKSPACE/pr"
           --min-severity "$MIN_SEVERITY"
           --run-id "pr-$PR_NUMBER"
           --post
@@ -68,5 +86,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: review-pr-${{ env.PR_NUMBER }}
-          path: runs/
+          path: tool/runs/
           retention-days: 14

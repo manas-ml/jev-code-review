@@ -1,0 +1,54 @@
+diff --git a/shop/inventory.py b/shop/inventory.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/shop/inventory.py
+@@ -0,0 +1,32 @@
++"""In-memory stock levels with reservations."""
++
++from __future__ import annotations
++
++import threading
++from collections import defaultdict
++
++
++class Inventory:
++    def __init__(self) -> None:
++        self._stock: dict[str, int] = defaultdict(int)
++        self._reserved: dict[str, int] = defaultdict(int)
++        self._lock = threading.Lock()
++
++    def restock(self, sku: str, qty: int) -> None:
++        if qty <= 0:
++            raise ValueError("qty must be positive")
++        with self._lock:
++            self._stock[sku] += qty
++
++    def available(self, sku: str) -> int:
++        return max(0, self._stock[sku] - self._reserved[sku])
++
++    def reserve(self, sku: str, qty: int) -> bool:
++        if self.available(sku) >= qty:
++            self._reserved[sku] += qty
++            return True
++        return False
++
++    def release(self, sku: str, qty: int) -> None:
++        with self._lock:
++            self._reserved[sku] = max(0, self._reserved[sku] - qty)
+diff --git a/shop/test_inventory.py b/shop/test_inventory.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/shop/test_inventory.py
+@@ -0,0 +1,10 @@
++from shop.inventory import Inventory
++
++
++def test_reserve_and_release():
++    inv = Inventory()
++    inv.restock("a", 2)
++    assert inv.reserve("a", 2)
++    assert not inv.reserve("a", 1)
++    inv.release("a", 2)
++    assert inv.available("a") == 2

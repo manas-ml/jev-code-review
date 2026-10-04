@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -63,10 +65,24 @@ class Settings(BaseSettings):
     """Only findings with gate severity >= this get inline PR comments (0 cosmetic .. 4 critical;
     3 = serious). Lower-severity findings go in the review body, collapsed."""
     dedupe_line_window: int = 3
-    match_line_window: int = 5
+    severity_caps: dict[str, float] = Field(
+        default_factory=lambda: {"tests": 1.0, "architecture": 2.0}
+    )
+    """Max effective severity per agent: a missing test or design concern is never 'critical'."""
+    match_line_window: int = 2
+    """Agents now see exact line numbers, so matching can be tight."""
 
     routing: RoutingThresholds = Field(default_factory=RoutingThresholds)
     gate: GateThresholds = Field(default_factory=GateThresholds)
+    gate_overrides: dict[str, GateThresholds] = Field(default_factory=dict)
+    """Per-pipeline gate thresholds (e.g. from `codereview calibrate`). Jev probabilities and an
+    LLM's self-reported confidence are different quantities, so each judge gets its own."""
+    gate_overrides_file: str | None = None
+    """JSON file with {pipeline: GateThresholds}; merged into gate_overrides at load time."""
+
+    def gate_for(self, pipeline: str) -> GateThresholds:
+        return self.gate_overrides.get(pipeline, self.gate)
+
     # Placeholder prices (unverified); override per model. Zero means "use cost from response".
     prices: dict[str, Pricing] = Field(default_factory=dict)
 
@@ -81,4 +97,9 @@ class Settings(BaseSettings):
 
 
 def load_settings(**overrides: object) -> Settings:
-    return Settings(**overrides)  # type: ignore[arg-type]
+    s = Settings(**overrides)  # type: ignore[arg-type]
+    if s.gate_overrides_file:
+        data = json.loads(Path(s.gate_overrides_file).read_text())
+        for pipeline, th in data.items():
+            s.gate_overrides.setdefault(pipeline, GateThresholds.model_validate(th))
+    return s

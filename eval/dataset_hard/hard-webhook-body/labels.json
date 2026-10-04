@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "hooks/partner.py",
+      "line_start": 13,
+      "line_end": 13,
+      "description": "HMAC is computed over re-serialized JSON, not the raw body the partner signed: valid webhooks fail and duplicate keys can smuggle data"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "hooks/partner.py",
+      "line_start": 14,
+      "line_end": 14,
+      "description": "constant-time comparison is correct"
+    }
+  ],
+  "nitpicks": []
+}

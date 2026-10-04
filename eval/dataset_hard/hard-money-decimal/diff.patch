@@ -1,0 +1,28 @@
+diff --git a/billing/invoice.py b/billing/invoice.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/billing/invoice.py
+@@ -0,0 +1,22 @@
++"""Invoice arithmetic using Decimal."""
++
++from __future__ import annotations
++
++from decimal import ROUND_HALF_UP, Decimal
++
++CENT = Decimal("0.01")
++
++
++def parse_amount(amount: float) -> Decimal:
++    return Decimal(amount).quantize(CENT, rounding=ROUND_HALF_UP)
++
++
++def line_total(unit: Decimal, qty: int) -> Decimal:
++    return (unit * qty).quantize(CENT, rounding=ROUND_HALF_UP)
++
++
++def split_evenly(total: Decimal, ways: int) -> list[Decimal]:
++    if ways <= 0:
++        raise ValueError("ways must be positive")
++    share = (total / ways).quantize(CENT, rounding=ROUND_HALF_UP)
++    return [share] * ways

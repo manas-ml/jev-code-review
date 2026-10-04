@@ -1,0 +1,28 @@
+diff --git a/export/archive.py b/export/archive.py
+new file mode 100644
+index 111..222 100644
+--- /dev/null
++++ b/export/archive.py
+@@ -0,0 +1,22 @@
++"""Create git archives for export. Repo names are validated before use."""
++
++from __future__ import annotations
++
++import re
++import subprocess
++
++NAME = re.compile(r"^[a-z0-9][a-z0-9_-]{0,62}$")
++
++
++def archive(repo: str, ref: str, out_path: str) -> None:
++    if not NAME.fullmatch(repo):
++        raise ValueError("bad repo name")
++    subprocess.run(
++        ["git", "-C", f"/srv/repos/{repo}", "archive", "--format=zip", "-o", out_path, "--", ref],
++        check=True,
++        shell=False,
++    )
++
++
++def record(cur, user_id: int, repo: str) -> None:
++    cur.execute("INSERT INTO exports (user_id, repo) VALUES (%s, %s)", (user_id, repo))

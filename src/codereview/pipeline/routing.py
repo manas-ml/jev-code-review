@@ -96,7 +96,11 @@ def route(
 GateAction = Literal["discard", "accept", "verify"]
 
 
-def decide_gate(g: GateResult, th: GateThresholds) -> tuple[GateAction, str]:
+def decide_gate(
+    g: GateResult, th: GateThresholds, severity: float | None = None
+) -> tuple[GateAction, str]:
+    """`severity` overrides the judge's raw score (e.g. after per-category caps)."""
+    sev = g.severity.value if severity is None else severity
     if g.duplicate.value > th.discard_duplicate_p:
         return "discard", f"duplicate p={g.duplicate.value:.2f} > {th.discard_duplicate_p}"
     if g.is_real_defect.value < th.discard_real_p:
@@ -106,7 +110,7 @@ def decide_gate(g: GateResult, th: GateThresholds) -> tuple[GateAction, str]:
     if (
         g.is_real_defect.value >= th.accept_real_p
         and g.actionable.value >= th.accept_actionable_p
-        and g.severity.value >= th.accept_severity_min
+        and sev >= th.accept_severity_min
     ):
         return "accept", "high-confidence real, actionable, severe enough"
     return "verify", "uncertain band"

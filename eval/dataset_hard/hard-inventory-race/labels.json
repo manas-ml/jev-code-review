@@ -1,0 +1,25 @@
+{
+  "issues": [
+    {
+      "file": "shop/inventory.py",
+      "line_start": 25,
+      "line_end": 25,
+      "description": "reserve() checks and increments without the lock: concurrent reservations oversell"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "shop/inventory.py",
+      "line_start": 22,
+      "line_end": 22,
+      "description": "clamping available at 0 is intentional and correct"
+    },
+    {
+      "file": "shop/inventory.py",
+      "line_start": 32,
+      "line_end": 32,
+      "description": "release under lock with clamp is correct"
+    }
+  ],
+  "nitpicks": []
+}

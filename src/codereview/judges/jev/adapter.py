@@ -24,9 +24,12 @@ DECISIONS_PATH = "/api/alpha/decisions"
 def build_question(q: Question) -> dict[str, Any]:
     body: dict[str, Any] = {"type": q.kind, "instructions": q.instructions}
     if q.kind == "choice":
-        body["criteria"] = {o: o.replace("_", " ") for o in q.options}
+        body["criteria"] = {k: d for k, d in q.rubric}
     elif q.kind == "score":
-        body["criteria"] = list(q.options)
+        # index = level; label kept first so the answer legend stays readable
+        body["criteria"] = [f"{k}: {d}" for k, d in q.rubric]
+    elif q.true_desc:
+        body["criteria"] = {"true": q.true_desc, "false": q.false_desc}
     return body
 
 

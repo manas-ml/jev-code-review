@@ -78,9 +78,6 @@ class MockJevJudge:
         for c in state.existing_comments:
             if c.file == f.file and c.line is not None and abs(c.line - f.line) <= 3:
                 dup = 0.9
-        for o in state.other_findings:
-            if o.id != f.id and o.file == f.file and abs(o.line - f.line) <= 3:
-                dup = max(dup, 0.4)
         sev = 3.0 if _RISKY_CODE.search(f.evidence) else 1.5
         return GateResult(
             is_real_defect=Scored(value=real, confidence=0.9),

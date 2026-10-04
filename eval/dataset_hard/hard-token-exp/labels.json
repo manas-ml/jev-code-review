@@ -1,0 +1,19 @@
+{
+  "issues": [
+    {
+      "file": "api/tokens.py",
+      "line_start": 13,
+      "line_end": 13,
+      "description": "tokens without exp (or exp=0) are accepted forever"
+    }
+  ],
+  "must_not_flag": [
+    {
+      "file": "api/tokens.py",
+      "line_start": 10,
+      "line_end": 10,
+      "description": "constant-time comparison is correct"
+    }
+  ],
+  "nitpicks": []
+}
