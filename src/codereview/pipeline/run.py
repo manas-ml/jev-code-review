@@ -120,13 +120,14 @@ async def run_pipeline(
             records = [FindingRecord(finding=f, disposition="accepted_ungated") for f in candidates]
         else:
 
-            async def gate_one(f: Finding) -> FindingRecord:
+            async def gate_one(idx: int, f: Finding) -> FindingRecord:
                 state = GateState(
                     finding=f,
                     code_window=code_window(ctx, f),
                     pr_title=ctx.title,
                     existing_comments=ctx.existing_comments,
-                    other_findings=candidates,
+                    # only earlier findings, so one of a duplicate cluster survives
+                    other_findings=candidates[:idx],
                 )
                 g: GateResult | None = None
                 err = ""
@@ -181,7 +182,7 @@ async def run_pipeline(
                     reason=f"{why}; verifier {v.verdict}: {v.reasoning}",
                 )
 
-            gated = await asyncio.gather(*(gate_one(f) for f in candidates))
+            gated = await asyncio.gather(*(gate_one(i, f) for i, f in enumerate(candidates)))
             for r in gated:
                 (records if r.disposition.startswith("accepted") else discarded).append(r)
 
