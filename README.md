@@ -35,7 +35,9 @@ Alternatives to OpenRouter for Jev access: Vercel AI Gateway or Cloudflare Worke
 ```
 uv run codereview review --pr https://github.com/o/r/pull/1 --pipeline jev --dry-run
 uv run codereview review --diff x.patch --meta meta.json --pipeline baseline [--repo ./checkout]
-uv run codereview compare --dataset eval/dataset      # runs A and B; resumable (cached in runs/compare)
+uv run codereview compare --dataset eval/dataset_hard --out runs/compare_hard --repeats 3
+uv run codereview calibrate --runs runs/compare_hard   # per-judge thresholds -> calibrated_gate.json
+GATE_OVERRIDES_FILE=runs/compare_hard/calibrated_gate.json uv run codereview review ...
 uv run python scripts/bootstrap_dataset.py OWNER/REPO 123 456   # best-effort labels
 ```
 
@@ -75,7 +77,12 @@ Dataset: `eval/dataset/<pr-id>/{meta.json, diff.patch, labels.json}`; `labels.js
 `{"issues": [{file, line_start, line_end, description}], "nitpicks": [{file, line}]}`.
 Two toy examples are included; they only exercise the harness.
 
-Matching rule: a finding matches a label if same file and line within 5 of the labeled range,
+Datasets: `eval/dataset` (30 small single-bug cases, `scripts/make_synthetic_dataset.py`) and
+`eval/dataset_hard` (16 multi-file PRs with 14 subtle bugs and 18 decoys,
+`scripts/make_hard_dataset.py`). Decoys are `labels.must_not_flag` regions: code that looks
+wrong but is correct; comments there count as `decoy_hits`.
+
+Matching rule: a finding matches a label if same file and line within 2 of the labeled range,
 else if an LLM judge (`src/codereview/eval/prompts/match_judge.md`) says they describe the same
 issue (cached in `match_cache.json`; disabled with `--no-use-match-judge`).
 
