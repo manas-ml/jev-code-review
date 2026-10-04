@@ -13,7 +13,9 @@ def rank_key(r: FindingRecord) -> tuple[float, float, str]:
 def rank_and_cap(
     records: list[FindingRecord], cap: int
 ) -> tuple[list[FindingRecord], list[FindingRecord]]:
-    ordered = sorted(records, key=rank_key)
+    ordered = [
+        r.model_copy(update={"rank": i}) for i, r in enumerate(sorted(records, key=rank_key), 1)
+    ]
     inline = ordered[:cap]
     overflow = [
         r.model_copy(update={"disposition": "overflow", "reason": f"beyond top {cap}"})

@@ -122,3 +122,17 @@ def test_rank_orders_by_severity_then_score_and_caps():
     inline, overflow = rank_and_cap(recs, 2)
     assert [r.finding.id for r in inline] == ["mid", "hi"]
     assert overflow[0].finding.id == "low" and overflow[0].disposition == "overflow"
+
+
+def test_summary_report_has_ranking_table_and_severity_counts():
+    from codereview.models import ReviewResult, RouteDecision
+    from codereview.pipeline.output import render_markdown
+
+    recs = [_rec("low", 1, "minor thing", sev=1, score=0.9), _rec("hi", 2, "big bug", sev=3.6)]
+    inline, overflow = rank_and_cap(recs, 10)
+    route = RouteDecision(skip=False, depth="deep", agents=["correctness"], human_required=True)
+    md = render_markdown(ReviewResult(pr_id="p", pipeline="jev", route=route, inline=inline))
+    assert "## Ranking" in md and "Human review required: **yes**" in md
+    assert "1 critical" in md and "1 minor" in md
+    rows = [ln for ln in md.splitlines() if ln.startswith("| 1 |") or ln.startswith("| 2 |")]
+    assert "big bug" in rows[0] and "minor thing" in rows[1]

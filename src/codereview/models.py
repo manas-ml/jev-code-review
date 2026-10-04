@@ -139,6 +139,7 @@ class FindingRecord(BaseModel):
     gate: GateResult | None = None
     gate_score: float | None = None
     disposition: Disposition
+    rank: int | None = None
     reason: str = ""
 
 
