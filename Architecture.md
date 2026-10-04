@@ -19,7 +19,8 @@ Stages run in order; work inside a stage is parallel.
   +---------------------------+
   | CONTEXT BUILDER           |  deterministic, no LLM
   | parse diff, per-file      |  all PR text wrapped in
-  | chunks, 120k-char cap     |  <<<BEGIN/END UNTRUSTED>>> blocks
+  | chunks, 120k-char cap,    |  <<<BEGIN/END UNTRUSTED>>> blocks;
+  | new-file line numbers     |  agents report the number shown
   +-------------+-------------+
                 |
                 v
@@ -69,6 +70,10 @@ Stages run in order; work inside a stage is parallel.
                   |      +--------+---------+  then gate prob; top 10, rest overflow
                   |               v
                   |      review.md / review.json / trace.json
+                  |               |  --post
+                  |               v
+                  |      GitHub review: inline if severity >= floor, line in diff,
+                  |      not unverified (max 10); everything else in the body
                   v
         recorded in review.json with reason
         (every discarded finding is kept)
@@ -159,7 +164,7 @@ code first, then longer evidence, then agent priority security > correctness > p
 architecture > tests), so the result does not depend on agent order and duplicates cost no
 judge calls.
 
-Each representative is judged with 4 questions, each with a rubric (a description per level or
+Each representative is judged with 4 questions (`judges/jev/questions.py`), each with a rubric (a description per level or
 for true/false) sent to Jev as `criteria`: `is_real_defect` (noul), `severity` (score, 0-4),
 `actionable` (noul), `duplicate` (noul, "already raised by an existing PR comment"). State =
 finding + ~60 lines of code (line-numbered) + PR title + existing comments on that file.
@@ -212,7 +217,24 @@ format lives entirely in `judges/jev/adapter.py`.
  logging           secrets redacted (on the data, before serializing) from review.* and trace
 ```
 
-## 7. Outputs and tracing
+## 7. GitHub Action
+
+```
+ trigger: pull_request_target (non-draft, same-repo) | workflow_dispatch (PR number)
+            |
+            v
+ checkout default branch -> tool/      (trusted: workflow + reviewer code)
+ checkout refs/pull/N/merge -> pr/     (data only: never installed or executed)
+            |
+            v
+ uv sync (tool/) -> codereview review --pr <url> --repo pr/ --min-severity $REVIEW_MIN_SEVERITY --post
+            |
+            v
+ GitHub review (COMMENT) + artifact tool/runs/ (14 days)
+ exit 1 if every agent failed; exit 2 if OPENROUTER_API_KEY is missing
+```
+
+## 8. Outputs and tracing
 
 ```
  runs/<run-id>/
@@ -222,7 +244,7 @@ format lives entirely in `judges/jev/adapter.py`.
                  every LLM call (model, tokens, cost); routing decision; findings
 ```
 
-## 8. Evaluation flow
+## 9. Evaluation flow
 
 ```
  eval/dataset*/<pr-id>/{meta.json, diff.patch, labels.json}
@@ -249,22 +271,29 @@ format lives entirely in `judges/jev/adapter.py`.
   calibrated_gate.json  ->  GATE_OVERRIDES_FILE=... applies it
 ```
 
-## 9. Module map
+## 10. Module map
 
 ```
  src/codereview/
    config.py            thresholds, model IDs, price table
    models.py            Finding, results, route decision
-   context/builder.py   diff parsing, delimiting, chunking, truncation
+   context/builder.py   diff parsing, line numbering, delimiting, chunking, truncation
    github/client.py     fetch PR, post review
    judges/
      base.py            Judge protocol
-     jev/{adapter,client,questions}.py
+     jev/questions.py   triage + gate questions with rubrics
+     jev/adapter.py     the only module that knows Jev's wire format
+     jev/client.py      JevJudge (HTTP, retries, tracing)
+     render.py          gate state rendering
+     factory.py         real vs mock judge
      mock_judge.py      offline heuristics (JEV_MODE=mock)
    llm/client.py        OpenRouter client, retry, validated JSON
    agents/              base runner, tools, 5 specialist specs
-   pipeline/            run, routing, verifier, dedupe, rank, output
+   pipeline/            run (orchestration), routing (pure), verifier, dedupe (clustering),
+                        rank, output (review.md/json, GitHub posting split)
    tracing.py           stage timing, calls, cost, redaction
-   eval/                dataset, score, report, compare command
-   cli.py               review, compare
+   eval/                dataset, score (matching, decoys), report, calibrate, CLI
+   cli.py, cli_core.py  `review`; eval/cli.py adds `compare`, `calibrate`
+ scripts/               dataset generators (synthetic, hard) and bootstrap from GitHub
+ .github/workflows/     code-review.yml
 ```
