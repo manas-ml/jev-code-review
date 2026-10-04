@@ -1,0 +1,16 @@
+diff --git a/app/pricing.py b/app/pricing.py
+index 111..222 100644
+--- a/app/pricing.py
++++ b/app/pricing.py
+@@ -10,7 +10,7 @@ def apply_discount(total: float, pct: float) -> float:
+     if pct < 0:
+         raise ValueError("negative discount")
+-    return total - total * pct
++    return total - total * pct / 100
+ 
+ 
+ def tax(total: float, rate: float) -> float:
+@@ -20,5 +20,6 @@ def tax(total: float, rate: float) -> float:
+-    return total * rate
++    items = []
++    return total * rate / len(items)

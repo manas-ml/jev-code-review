@@ -1,0 +1,7 @@
+diff --git a/app/auth/session.py b/app/auth/session.py
+index 111..222 100644
+--- a/app/auth/session.py
++++ b/app/auth/session.py
+@@ -5,4 +5,4 @@ def verify(token: str) -> bool:
+-    return hmac.compare_digest(sign(token), token)
++    return sign(token) == token
