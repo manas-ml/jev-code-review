@@ -1,16 +1,13 @@
 # codereview: agentic PR review POC (Jev gates + LLM agents)
 
-Pipelines (share all code except the judge):
-
-| id | `--pipeline` | triage + gate | notes |
-|----|--------------|---------------|-------|
-| A  | `jev`        | Jev (`typesafe/jev-1.13`) via OpenRouter | proposed |
-| B  | `baseline`   | general LLM judge, same questions as Jev | comparison |
+Jev (`typesafe/jev-1.13`, via OpenRouter) makes the triage and gate decisions; DeepSeek
+(`deepseek/deepseek-v4.1-flash`) runs the specialist agents and the verifier. `JEV_MODE=mock`
+swaps Jev for an offline heuristic judge (dev and tests only).
 
 ```
 PR -> context -> TRIAGE judge -> route (skip | light | deep)
-   -> specialist agents (parallel) -> GATE judge per finding
-        accept / discard / uncertain -> LLM verifier -> dedupe -> rank -> review
+   -> specialist agents (parallel) -> cluster duplicates -> GATE (Jev) per cluster
+        accept / discard / uncertain -> LLM verifier -> rank -> review
 ```
 
 ## Setup
@@ -22,9 +19,9 @@ uv run pytest              # offline: mocks + recorded-style fakes, no network
 uv run ruff check . && uv run mypy
 ```
 
-Env vars: `OPENROUTER_API_KEY` (agents, verifier, baseline judge, and Jev all go through
+Env vars: `OPENROUTER_API_KEY` (agents, verifier, and Jev all go through
 OpenRouter), `GITHUB_TOKEN`, `JEV_MODE` (`real` | `mock`; default `mock`), plus model overrides
-(`JEV_MODEL`, `AGENT_MODEL`, `VERIFIER_MODEL`, `BASELINE_JUDGE_MODEL`, `MATCH_JUDGE_MODEL`).
+(`JEV_MODEL`, `AGENT_MODEL`, `VERIFIER_MODEL`, `MATCH_JUDGE_MODEL`).
 `TYPESAFE_API_KEY` is accepted but unused (Jev is called through OpenRouter).
 
 Alternatives to OpenRouter for Jev access: Vercel AI Gateway or Cloudflare Workers AI; only
@@ -34,9 +31,9 @@ Alternatives to OpenRouter for Jev access: Vercel AI Gateway or Cloudflare Worke
 
 ```
 uv run codereview review --pr https://github.com/o/r/pull/1 --pipeline jev --dry-run
-uv run codereview review --diff x.patch --meta meta.json --pipeline baseline [--repo ./checkout]
+uv run codereview review --diff x.patch --meta meta.json [--repo ./checkout]
 uv run codereview compare --dataset eval/dataset_hard --out runs/compare_hard --repeats 3
-uv run codereview calibrate --runs runs/compare_hard   # per-judge thresholds -> calibrated_gate.json
+uv run codereview calibrate --runs runs/compare_hard   # tuned gate thresholds -> calibrated_gate.json
 GATE_OVERRIDES_FILE=runs/compare_hard/calibrated_gate.json uv run codereview review ...
 uv run python scripts/bootstrap_dataset.py OWNER/REPO 123 456   # best-effort labels
 ```
@@ -124,6 +121,5 @@ Thresholds needing calibration (all in `config.py`): every value in `RoutingThre
 are Jev's continuous expected-level values, so these cutoffs are on that scale.
 
 Other: `MockJevJudge` (default `JEV_MODE=mock`) is a heuristic stand-in with fake probabilities,
-for offline dev/tests only, never for the comparison. Baseline judge uses the same model as the
-agents, so B vs A isolates Jev vs a general LLM as the judge. Tests use scripted fake LLMs and
+for offline dev/tests only, never for evaluation. Tests use scripted fake LLMs and
 respx-mocked HTTP rather than recorded real responses.

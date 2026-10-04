@@ -30,7 +30,7 @@ def register(app: typer.Typer) -> None:
         dataset: Annotated[Path, typer.Option(help="eval/dataset directory")] = Path(
             "eval/dataset"
         ),
-        pipelines: Annotated[str, typer.Option(help="comma list")] = "jev,baseline",
+        pipelines: Annotated[str, typer.Option(help="comma list")] = "jev",
         out: Annotated[Path, typer.Option()] = Path("runs/compare"),
         use_match_judge: Annotated[bool, typer.Option()] = True,
         repeats: Annotated[int, typer.Option(help="runs per PR per pipeline")] = 3,
@@ -47,7 +47,7 @@ def register(app: typer.Typer) -> None:
             "runs/compare"
         ),
     ) -> None:
-        """Tune gate thresholds per judge from recorded gate answers (no model calls)."""
+        """Tune Jev gate thresholds from recorded gate answers (no model calls)."""
         settings = load_settings()
         findings = pd.read_csv(runs / "calibration_findings.csv")
         results = run_calibration(findings, settings.gate)

@@ -20,7 +20,7 @@ async def test_dataset_scoring_and_report(settings, tmp_path):
     matcher = Matcher(settings)
     rows, frows = [], []
     for ex in examples:
-        for p, judge in (("jev", MockJevJudge()), ("baseline", MockJevJudge())):
+        for p, judge in (("jev", MockJevJudge()),):
             t = Tracer(p, ex.pr_id)
             res = await run_pipeline(p, ex.context, FakeLLM(default_handler), judge, settings, t)
             row, f = await score_pr(ex, res, t.to_dict(), matcher)
@@ -30,7 +30,7 @@ async def test_dataset_scoring_and_report(settings, tmp_path):
     per_pr = pd.DataFrame(rows)
     s = summarize(per_pr).set_index("pipeline")
     assert s.loc["jev", "recall"] == 1.0 and s.loc["jev", "precision"] == 1.0
-    assert s.loc["jev", "skip_rate"] == 0.5 and s.loc["baseline", "skip_rate"] == 0.5
+    assert s.loc["jev", "skip_rate"] == 0.5
     assert s.loc["jev", "skipped_with_labels"] == 0
     cal = calibration(pd.DataFrame(frows))
     jev_cal = cal[cal.pipeline == "jev"]

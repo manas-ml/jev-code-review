@@ -1,4 +1,4 @@
-"""Question definitions shared by JevJudge and LLMJudge (so A/B ask the same things).
+"""Question definitions for the Jev judge (triage and gate).
 
 kinds: choice (pick one option), score (zero-based ordered level), noul (probability of yes).
 

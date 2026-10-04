@@ -27,7 +27,7 @@ def review(
     pr: Annotated[str | None, typer.Option(help="GitHub PR URL")] = None,
     diff: Annotated[Path | None, typer.Option(help="Local unified diff")] = None,
     meta: Annotated[Path | None, typer.Option(help="Local meta.json (title, description)")] = None,
-    pipeline: Annotated[str, typer.Option(help="jev | baseline")] = "jev",
+    pipeline: Annotated[str, typer.Option(help="jev (the only pipeline)")] = "jev",
     repo: Annotated[Path | None, typer.Option(help="Checked-out repo for agent tools")] = None,
     post: Annotated[bool, typer.Option("--post/--dry-run")] = False,
     run_id: Annotated[str | None, typer.Option()] = None,
@@ -40,7 +40,7 @@ def review(
     if pipeline not in PIPELINES:
         raise typer.BadParameter(f"pipeline must be one of {PIPELINES}")
     settings = load_settings()
-    if not settings.openrouter_api_key and (pipeline == "baseline" or settings.jev_mode == "real"):
+    if not settings.openrouter_api_key and settings.jev_mode == "real":
         console.print("[red]OPENROUTER_API_KEY is not set[/red] (needed for agents and the judge)")
         raise typer.Exit(2)
     if min_severity is not None:

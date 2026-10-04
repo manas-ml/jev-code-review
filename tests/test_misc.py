@@ -4,14 +4,12 @@ import httpx
 import respx
 
 from codereview.config import Pricing
-from codereview.context.builder import triage_state
-from codereview.judges.claude_judge import LLMJudge
 from codereview.llm.client import OpenRouterClient, chat_validated
 from codereview.models import Finding, FindingRecord, GateResult, Scored
 from codereview.pipeline.dedupe import cluster, pick_representative
 from codereview.pipeline.rank import rank_and_cap
 from codereview.tracing import Tracer, redact
-from conftest import FakeLLM, load
+from conftest import FakeLLM
 
 OR = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -48,34 +46,18 @@ async def test_llm_client_prefers_reported_cost(settings):
 
 
 async def test_chat_validated_retries_with_error():
+    from pydantic import BaseModel
+
+    class _Answers(BaseModel):
+        answers: dict[str, int]
+
     outs = iter(['{"answers": 1}', '{"answers": {}}'])
-    from codereview.judges.claude_judge import _Answers
 
     llm = FakeLLM(lambda s, m: next(outs))
     res = await chat_validated(
         llm, _Answers, [{"role": "user", "content": "q"}], model="m", stage="s"
     )
     assert res.answers == {}
-
-
-async def test_llm_judge_parses_answers(settings):
-    answers = {
-        "change_type": {"answer": "bugfix", "confidence": 0.9},
-        "risk": {"answer": 2, "confidence": 0.8},
-        **{
-            k: {"answer": 0.3, "confidence": 0.9}
-            for k in (
-                "trivial",
-                "touches_sensitive",
-                "changes_public_contract",
-                "lacks_test_coverage",
-                "perf_sensitive",
-            )
-        },
-    }
-    llm = FakeLLM(lambda s, m: json.dumps({"answers": answers}))
-    res = await LLMJudge(llm, settings).triage(triage_state(load("bugfix"), 1000))
-    assert res.risk.value == 2 and res.change_type == "bugfix"
 
 
 def test_redaction():

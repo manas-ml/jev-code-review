@@ -1,4 +1,4 @@
-"""Render judge states as delimited text (shared by JevJudge and LLMJudge)."""
+"""Render judge states as delimited text (used by JevJudge)."""
 
 from __future__ import annotations
 

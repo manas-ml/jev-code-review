@@ -1,4 +1,4 @@
-"""Per-judge gate threshold calibration from recorded gate answers (no new model calls).
+"""Gate threshold calibration from recorded gate answers (no new model calls).
 
 Replays the gate's auto-accept rule over the findings `compare` already gated
 (`calibration_findings.csv`): a finding is accepted if

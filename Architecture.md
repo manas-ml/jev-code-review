@@ -1,15 +1,12 @@
 # Architecture
 
 Agentic PR review: **Jev** makes fast constrained decisions (routing and filtering), **DeepSeek**
-(via OpenRouter) does the reasoning (specialist agents, verifier). Two pipelines share all code
-except the judge:
+(via OpenRouter) does the reasoning (specialist agents, verifier).
 
-| pipeline | `--pipeline` | triage + gate judge |
-|----------|--------------|---------------------|
-| A        | `jev`        | `typesafe/jev-1.13` (`JevJudge`) |
-| B        | `baseline`   | `deepseek/deepseek-v4.1-flash` (`LLMJudge`, same questions as Jev) |
-
-Agents and verifier always use DeepSeek in both pipelines, so A vs B isolates the judge.
+| role | model |
+|------|-------|
+| triage + gate judge | `typesafe/jev-1.13` (`JevJudge`; `MockJevJudge` offline with `JEV_MODE=mock`) |
+| specialist agents, verifier, eval match judge | `deepseek/deepseek-v4.1-flash` |
 
 ## 1. End-to-end flow
 
@@ -169,8 +166,8 @@ finding + ~60 lines of code (line-numbered) + PR title + existing comments on th
 
 Effective severity = min(judge severity, per-agent cap); defaults cap `tests` at 1 and
 `architecture` at 2, so a missing test is never "critical". Gating, ranking and the posting
-floor use the effective value; the raw score stays in `review.json`. Thresholds can differ per
-judge (`gate_overrides`, produced by `codereview calibrate`).
+floor use the effective value; the raw score stays in `review.json`. Calibrated thresholds
+come from `codereview calibrate` (`gate_overrides`).
 
 ```
  duplicate p > 0.7 ?            ---- yes --> DISCARD
@@ -185,15 +182,13 @@ judge (`gate_overrides`, produced by `codereview calibrate`).
  gate call itself failed  --------------------------------> VERIFY (never silently discard)
 ```
 
-## 5. Jev vs LLM judge (what differs between pipelines)
+## 5. Jev's role
 
 ```
-                    pipeline A (jev)                 pipeline B (baseline)
- triage   ---> POST /api/alpha/decisions    ---> chat completion, JSON answers
- gate     ---> typed answers: choice /             validated by pydantic,
-               score / noul probabilities          same 7 + 4 questions
- agents   ---> DeepSeek (identical)          ---> DeepSeek (identical)
- verifier ---> DeepSeek (identical)          ---> DeepSeek (identical)
+ triage   ---> POST /api/alpha/decisions, 7 questions in one call
+ gate     ---> one call per cluster, 4 questions; typed answers: choice / score / noul
+ agents   ---> DeepSeek
+ verifier ---> DeepSeek
 ```
 
 Jev never writes text or code; it returns choices, scores and probabilities only. The wire
@@ -234,7 +229,7 @@ format lives entirely in `judges/jev/adapter.py`.
    labels: issues (true bugs) + must_not_flag (decoys: looks wrong, is correct)
             |
             v
-  for each repeat, PR, pipeline (jev, baseline)     resumable, --parallel PRs in flight
+  for each repeat, PR (jev pipeline)                 resumable, --parallel PRs in flight
             |
             v
   match findings to labels:  same file and line within 2 of labeled range
@@ -246,11 +241,11 @@ format lives entirely in `judges/jev/adapter.py`.
      cost per PR, latency p50/p95, comments, precision, recall, skip rate,
      skipped_with_labels / downgraded_with_labels (missed-issue risk),
      decoy_hits, means with min/max across repeats, per-PR table,
-     per-judge calibration of gate is_real_defect probability vs matched labels
+     calibration of the Jev gate is_real_defect probability vs matched labels
             |
             v
   codereview calibrate: replays recorded gate answers (no model calls), grid-searches the
-  auto-accept thresholds per judge on a train split, reports a held-out split, writes
+  auto-accept thresholds on a train split, reports a held-out split, writes
   calibrated_gate.json  ->  GATE_OVERRIDES_FILE=... applies it
 ```
 
@@ -265,7 +260,6 @@ format lives entirely in `judges/jev/adapter.py`.
    judges/
      base.py            Judge protocol
      jev/{adapter,client,questions}.py
-     claude_judge.py    LLMJudge (baseline)
      mock_judge.py      offline heuristics (JEV_MODE=mock)
    llm/client.py        OpenRouter client, retry, validated JSON
    agents/              base runner, tools, 5 specialist specs

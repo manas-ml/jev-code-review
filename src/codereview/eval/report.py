@@ -28,7 +28,7 @@ def write_report(
     md = [
         "# Pipeline comparison",
         "",
-        "A = jev, B = baseline (LLM judge). Metrics are means over repeats; `_min`/`_max` give "
+        "Jev pipeline. Metrics are means over repeats; `_min`/`_max` give "
         "the spread across repeats.",
         "",
         "## Summary",
@@ -37,7 +37,7 @@ def write_report(
         "## Per-PR (mean over repeats)",
         _per_pr_table(per_pr),
         "",
-        "## Calibration (gate `is_real_defect` probability vs labeled match, per judge)",
+        "## Calibration (gate `is_real_defect` probability vs labeled match)",
         calib.to_markdown(index=False, floatfmt=".3f"),
         "",
         "Notes: `decoy_hits` counts comments on code that looks wrong but is correct "

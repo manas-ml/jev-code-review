@@ -2,7 +2,6 @@
 
 Pipelines share all code except the judge:
   A "jev"      JevJudge for triage + gate
-  B "baseline" LLM judge for triage + gate
 """
 
 from __future__ import annotations
@@ -32,7 +31,7 @@ from codereview.pipeline.routing import decide_gate, route
 from codereview.pipeline.verifier import verify_finding
 from codereview.tracing import Tracer
 
-PIPELINES = ("jev", "baseline")
+PIPELINES = ("jev",)
 
 
 def code_window(ctx: ReviewContext, f: Finding, radius: int = 30) -> str:

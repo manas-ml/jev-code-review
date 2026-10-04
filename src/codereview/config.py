@@ -54,7 +54,6 @@ class Settings(BaseSettings):
     jev_model: str = "typesafe/jev-1.13"
     agent_model: str = "deepseek/deepseek-v4.1-flash"
     verifier_model: str = "deepseek/deepseek-v4.1-flash"
-    baseline_judge_model: str = "deepseek/deepseek-v4.1-flash"
     match_judge_model: str = "deepseek/deepseek-v4.1-flash"
 
     max_concurrency: int = 4
@@ -75,8 +74,7 @@ class Settings(BaseSettings):
     routing: RoutingThresholds = Field(default_factory=RoutingThresholds)
     gate: GateThresholds = Field(default_factory=GateThresholds)
     gate_overrides: dict[str, GateThresholds] = Field(default_factory=dict)
-    """Per-pipeline gate thresholds (e.g. from `codereview calibrate`). Jev probabilities and an
-    LLM's self-reported confidence are different quantities, so each judge gets its own."""
+    """Per-pipeline gate thresholds, produced by `codereview calibrate`."""
     gate_overrides_file: str | None = None
     """JSON file with {pipeline: GateThresholds}; merged into gate_overrides at load time."""
 
