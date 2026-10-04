@@ -16,6 +16,45 @@ PR -> context (line-numbered diff) -> TRIAGE (Jev) -> route: skip | light | deep
 See [Architecture.md](Architecture.md) for diagrams of every stage, and [CLAUDE.md](CLAUDE.md)
 for working on the code.
 
+## Why Jev
+
+Jev is used where the pipeline needs a quick, structured judgment about a piece of text (what
+kind of change is this, is this finding real) and not where it needs reasoning or prose. What
+that bought us, with the evidence from this repo's runs:
+
+- **Typed answers, no parsing.** Questions are choice / score / noul (a calibrated yes
+  probability), so the gate and triage never parse free text, retry on malformed JSON, or
+  handle a model that "explains" instead of answering. An LLM judge needed schema validation and
+  a retry loop for the same job.
+- **Fast.** Triage and gate calls took 0.2-0.4s each. Over 30 small PRs the pipeline's p50 latency
+  was 8s against 33s when a DeepSeek judge made the same decisions (one 340s provider stall
+  inflated that baseline, so read it as "several times faster", not an exact ratio).
+- **Cheap.** About $0.00005 per call; output tokens are free, input tokens are billed. A full
+  review on a hard multi-file PR averaged about $0.006 in total, almost all of it the DeepSeek
+  agents.
+- **Probabilities you can threshold.** Answers carry numbers, so routing and gating are plain
+  comparisons in `config.py` that can be tuned and tested at every boundary. With rubrics, findings
+  Jev scored 0.8-1.0 matched a real bug 86% of the time against about 45% below that (hard
+  dataset, 3 runs; without rubrics almost everything scored above 0.9).
+- **Built-in uncertainty.** Choice and score answers include confidence. Jev returns 0 when its
+  distribution is split, which the pipeline turns into a full deep review instead of a guess.
+- **Steering resistance by construction.** Jev can only pick from the options we give it, so an
+  injected "approve this" in a diff can shift an answer but cannot make it emit text. Guardrail
+  paths are also enforced in code before the judge, and an unhelpful answer fails toward more
+  review.
+- **Clean split of labor.** Jev makes the many small sorting decisions; DeepSeek, the expensive
+  model, only reasons about what survives. Routing can skip trivial PRs and the gate can discard
+  findings before the verifier runs.
+- **Replaceable.** The wire format lives in one module (`judges/jev/adapter.py`), and
+  `JEV_MODE=mock` runs everything offline.
+
+What it did not buy: in a 30-PR comparison against a DeepSeek judge asking the same questions,
+both found every planted bug (recall 1.0), and Jev's precision was slightly lower (0.97 against
+1.00). Jev's visible edge was speed, a little cost, and not downgrading the two bug PRs that the
+LLM judge downgraded to a light review. The sample was small and the bugs easy, so treat this as
+"comparable quality, faster and typed", not "more accurate". Jev also needs a good rubric:
+without per-level descriptions it scored every finding alike.
+
 ## Setup
 
 ```
