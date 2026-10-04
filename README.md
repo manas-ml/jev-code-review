@@ -41,8 +41,7 @@ kind of change is this, is this finding real) and not where it needs reasoning o
   `JEV_MODE=mock` runs everything offline.
 
 Caveats: Jev needs a good rubric (a description per level or option); without one it scores
-every finding alike. It has not been shown to be more accurate than a general LLM judge asking
-the same questions, so the case for it rests on speed, cost and typed outputs, not accuracy.
+every finding alike. 
 
 ## Setup
 
