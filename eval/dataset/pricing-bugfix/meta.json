@@ -1,0 +1,1 @@
+{"title": "Fix discount percentage calculation", "description": "Discount was treated as fraction; now percent."}
