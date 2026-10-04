@@ -131,7 +131,6 @@ Disposition = Literal[
     "dropped_unclear",
     "deduped",
     "overflow",
-    "accepted_ungated",
 ]
 
 

@@ -28,7 +28,7 @@ def register(app: typer.Typer) -> None:
         dataset: Annotated[Path, typer.Option(help="eval/dataset directory")] = Path(
             "eval/dataset"
         ),
-        pipelines: Annotated[str, typer.Option(help="comma list")] = "jev,baseline,naive",
+        pipelines: Annotated[str, typer.Option(help="comma list")] = "jev,baseline",
         out: Annotated[Path, typer.Option()] = Path("runs/compare"),
         use_match_judge: Annotated[bool, typer.Option()] = True,
     ) -> None:

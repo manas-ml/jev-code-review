@@ -17,16 +17,14 @@ class FailingJudge:
         raise JudgeError("HTTP 500")
 
 
-async def test_naive_pipeline_runs_all_agents_and_passes_findings(settings, tmp_path):
+async def test_outputs_written_with_trace(settings, tmp_path):
     llm = FakeLLM(default_handler)
-    t = Tracer("naive", "bugfix")
-    res = await run_pipeline("naive", load("bugfix"), llm, None, settings, t)
-    assert res.route.agents == ["correctness", "security", "tests", "architecture", "performance"]
-    assert len(res.inline) == 1 and res.inline[0].disposition == "accepted_ungated"
+    t = Tracer("jev", "bugfix")
+    res = await run_pipeline("jev", load("bugfix"), llm, MockJevJudge(), settings, t)
     write_outputs(tmp_path, res, t)
     assert {p.name for p in tmp_path.iterdir()} == {"review.json", "review.md", "trace.json"}
     trace = json.loads((tmp_path / "trace.json").read_text())
-    assert trace["total_cost_usd"] == 0 and len(trace["calls"]) == 5
+    assert trace["route"]["depth"] == "deep" and trace["calls"]
 
 
 async def test_jev_pipeline_accepts_grounded_finding(settings):
@@ -108,7 +106,7 @@ async def test_dedupe_and_cap(settings):
         return default_handler(stage, messages)
 
     res = await run_pipeline(
-        "naive", load("bugfix"), FakeLLM(h), None, settings, Tracer("naive", "b")
+        "jev", load("bugfix"), FakeLLM(h), MockJevJudge(), settings, Tracer("jev", "b")
     )
     assert len(res.inline) == 1
     assert any(r.disposition == "deduped" for r in res.discarded)

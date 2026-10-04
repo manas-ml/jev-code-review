@@ -13,9 +13,7 @@ from codereview.llm.client import LLM
 
 def make_judge(
     pipeline: str, settings: Settings, llm: LLM, http: httpx.AsyncClient | None = None
-) -> Judge | None:
-    if pipeline == "naive":
-        return None
+) -> Judge:
     if pipeline == "baseline":
         return LLMJudge(llm, settings)
     if pipeline == "jev":

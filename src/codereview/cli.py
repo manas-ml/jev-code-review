@@ -27,7 +27,7 @@ def review(
     pr: Annotated[str | None, typer.Option(help="GitHub PR URL")] = None,
     diff: Annotated[Path | None, typer.Option(help="Local unified diff")] = None,
     meta: Annotated[Path | None, typer.Option(help="Local meta.json (title, description)")] = None,
-    pipeline: Annotated[str, typer.Option(help="jev | baseline | naive")] = "jev",
+    pipeline: Annotated[str, typer.Option(help="jev | baseline")] = "jev",
     repo: Annotated[Path | None, typer.Option(help="Checked-out repo for agent tools")] = None,
     post: Annotated[bool, typer.Option("--post/--dry-run")] = False,
     run_id: Annotated[str | None, typer.Option()] = None,

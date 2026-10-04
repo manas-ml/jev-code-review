@@ -6,7 +6,6 @@ Pipelines (share all code except the judge):
 |----|--------------|---------------|-------|
 | A  | `jev`        | Jev (`typesafe/jev-1.13`) via OpenRouter | proposed |
 | B  | `baseline`   | general LLM judge, same questions as Jev | comparison |
-| C  | `naive`      | none: all agents, every finding passes | reference |
 
 ```
 PR -> context -> TRIAGE judge -> route (skip | light | deep)
@@ -36,7 +35,7 @@ Alternatives to OpenRouter for Jev access: Vercel AI Gateway or Cloudflare Worke
 ```
 uv run codereview review --pr https://github.com/o/r/pull/1 --pipeline jev --dry-run
 uv run codereview review --diff x.patch --meta meta.json --pipeline baseline [--repo ./checkout]
-uv run codereview compare --dataset eval/dataset      # runs A, B, C; resumable (cached in runs/compare)
+uv run codereview compare --dataset eval/dataset      # runs A and B; resumable (cached in runs/compare)
 uv run python scripts/bootstrap_dataset.py OWNER/REPO 123 456   # best-effort labels
 ```
 

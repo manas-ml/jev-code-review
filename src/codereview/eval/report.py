@@ -19,7 +19,7 @@ def write_report(
     md = [
         "# Pipeline comparison",
         "",
-        "A = jev, B = baseline (LLM judge), C = naive (no triage, no gate).",
+        "A = jev, B = baseline (LLM judge).",
         "",
         "## Summary",
         summary.to_markdown(index=False, floatfmt=".3f"),
