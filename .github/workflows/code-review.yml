@@ -1,0 +1,57 @@
+name: Jev code review
+
+# Runs the Jev pipeline on every PR in THIS repo and posts a review.
+# Uses `pull_request` (not pull_request_target) so untrusted fork code never gets secrets;
+# fork PRs are skipped because they have no access to OPENROUTER_API_KEY anyway.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: code-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4  # PR merge commit; agents read it via --repo (read-only)
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync --frozen
+
+      - name: Review PR (Jev pipeline)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JEV_MODE: real
+          # Inline comments only for findings at or above this severity (0 cosmetic .. 4 critical).
+          # Raise/lower via a repo variable without editing this file.
+          MIN_SEVERITY: ${{ vars.REVIEW_MIN_SEVERITY || '3' }}
+        run: >-
+          uv run codereview review
+          --pr "${{ github.event.pull_request.html_url }}"
+          --pipeline jev
+          --repo "$GITHUB_WORKSPACE"
+          --min-severity "$MIN_SEVERITY"
+          --run-id "pr-${{ github.event.pull_request.number }}"
+          --post
+
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-pr-${{ github.event.pull_request.number }}
+          path: runs/
+          retention-days: 14

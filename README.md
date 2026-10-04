@@ -48,6 +48,25 @@ disposition. Secrets are redacted before anything is written.
 `read_file`/`grep`/`list_dir` over a checkout (path-traversal rejected; no writes/shell/network).
 Depth: `deep` runs agents and verifier with repo tools; `light` runs without tools.
 
+## GitHub Action (Jev pipeline only)
+
+`.github/workflows/code-review.yml` runs `codereview review --pipeline jev --post` on every
+non-draft, same-repo PR (opened / synchronize / reopened / ready_for_review) and posts a review.
+
+Setup: add the repo secret `OPENROUTER_API_KEY` (Settings > Secrets and variables > Actions, or
+`gh secret set OPENROUTER_API_KEY`). `GITHUB_TOKEN` is provided by Actions (needs
+`pull-requests: write`, set in the workflow).
+
+What gets posted: inline comments only for findings with severity >= `REVIEW_MIN_SEVERITY`
+(repo variable, default 3 = "serious"; scale 0 cosmetic .. 4 critical). Everything else that
+passed the gate is listed, collapsed, in the review body with a ranking table, so nothing is
+hidden. Inline comments are limited to lines visible in the diff (GitHub rejects others) and
+to 10 per review; if GitHub still rejects them the review is reposted with all findings in the
+body. Nothing is posted when there are no findings and no human-review flag. New pushes cancel
+the in-flight run; each run is a new review, and earlier review comments are fed to the gate as
+duplicate context. Fork PRs are skipped (no secrets). Run artifacts (`runs/`) are uploaded for
+14 days. Locally: `uv run codereview review --pr <url> --min-severity 3 --post`.
+
 ## Eval
 
 Dataset: `eval/dataset/<pr-id>/{meta.json, diff.patch, labels.json}`; `labels.json` =

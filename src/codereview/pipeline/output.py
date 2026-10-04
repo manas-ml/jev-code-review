@@ -121,13 +121,64 @@ def write_outputs(run_dir: Path, result: ReviewResult, tracer: Tracer) -> None:
     tracer.write(run_dir / "trace.json")
 
 
-def github_comments(result: ReviewResult) -> list[dict[str, object]]:
-    return [
-        {
-            "path": r.finding.file,
-            "line": r.finding.line,
-            "side": "RIGHT",
-            "body": redact(f"**{r.finding.title}**\n\n{r.finding.explanation}"),
-        }
-        for r in result.inline
+BODY_LIMIT = 60_000
+
+
+def _severity(r: FindingRecord) -> float:
+    return r.gate.severity.value if r.gate else 0.0
+
+
+def split_for_posting(
+    result: ReviewResult,
+    min_severity: float,
+    commentable: dict[str, set[int]] | None,
+    cap: int,
+) -> tuple[list[dict[str, object]], list[FindingRecord]]:
+    """Returns (inline GitHub comments, ranked findings that are NOT posted inline).
+
+    Inline only if severity >= min_severity, the line is visible in the diff, and the cap
+    isn't reached. Everything else goes in the review body so nothing is lost.
+    """
+    comments: list[dict[str, object]] = []
+    rest: list[FindingRecord] = []
+    for r in [*result.inline, *result.overflow]:
+        f = r.finding
+        visible = commentable is None or f.line in commentable.get(f.file, set())
+        if _severity(r) >= min_severity and visible and len(comments) < cap:
+            comments.append(
+                {
+                    "path": f.file,
+                    "line": f.line,
+                    "side": "RIGHT",
+                    "body": redact(
+                        f"**#{r.rank} {severity_label(r)}: {f.title}**\n\n{f.explanation}"
+                        + (f"\n\n**Suggested fix:** {f.suggested_fix}" if f.suggested_fix else "")
+                    ),
+                }
+            )
+        else:
+            rest.append(r)
+    return comments, rest
+
+
+def render_review_body(
+    result: ReviewResult, n_inline: int, rest: list[FindingRecord], min_severity: float
+) -> str:
+    rt = result.route
+    ranked = [*result.inline, *result.overflow]
+    out = [
+        "## Automated review (Jev gate)" if result.pipeline == "jev" else "## Automated review",
+        "",
+        f"- Route: **{rt.depth}**, agents: {', '.join(rt.agents) or 'none'}"
+        + (" (fail-safe)" if rt.failed_safe else ""),
+        f"- Human review required: **{'yes' if rt.human_required else 'no'}**",
+        f"- {len(ranked)} finding(s) after filtering; {n_inline} posted inline "
+        f"(severity >= {min_severity:g}).",
     ]
+    if ranked:
+        out += ["", "### Ranking", "", *_table(ranked)]
+    if rest:
+        out += ["", "<details><summary>Findings not posted inline</summary>", ""]
+        out += [_line(r) for r in rest]
+        out += ["", "</details>"]
+    return redact("\n".join(out))[:BODY_LIMIT]

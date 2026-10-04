@@ -136,3 +136,62 @@ def test_summary_report_has_ranking_table_and_severity_counts():
     assert "1 critical" in md and "1 minor" in md
     rows = [ln for ln in md.splitlines() if ln.startswith("| 1 |") or ln.startswith("| 2 |")]
     assert "big bug" in rows[0] and "minor thing" in rows[1]
+
+
+def _result_with(recs):
+    from codereview.models import ReviewResult, RouteDecision
+
+    inline, overflow = rank_and_cap(recs, 10)
+    route = RouteDecision(skip=False, depth="deep", agents=["correctness"], human_required=False)
+    return ReviewResult(pr_id="p", pipeline="jev", route=route, inline=inline, overflow=overflow)
+
+
+def test_commentable_lines_from_hunks():
+    from codereview.github.client import commentable_lines
+    from codereview.models import FileDiff
+
+    patch = "diff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1,3 +10,4 @@\n a\n-b\n+c\n+d\n e\n"
+    assert commentable_lines([FileDiff(path="f", patch=patch)]) == {"f": {10, 11, 12, 13}}
+
+
+def test_only_high_severity_posted_inline_rest_in_body():
+    from codereview.pipeline.output import render_review_body, split_for_posting
+
+    recs = [
+        _rec("hi", 10, "serious bug", sev=3.6),
+        _rec("mid", 11, "moderate thing", sev=2.0),
+        _rec("off", 99, "serious but outside diff", sev=3.9),
+    ]
+    res = _result_with(recs)
+    visible = {"f.py": {10, 11}}
+    comments, rest = split_for_posting(res, 3.0, visible, 10)
+    assert [c["line"] for c in comments] == [10]
+    assert {r.finding.id for r in rest} == {"mid", "off"}
+    body = render_review_body(res, len(comments), rest, 3.0)
+    assert "Findings not posted inline" in body and "moderate thing" in body
+    assert "serious but outside diff" in body  # never lost
+    assert "severity >= 3" in body
+
+
+def test_lower_floor_posts_more():
+    from codereview.pipeline.output import split_for_posting
+
+    res = _result_with([_rec("a", 1, "x", sev=3.6), _rec("b", 2, "y", sev=2.0)])
+    assert len(split_for_posting(res, 3.0, None, 10)[0]) == 1
+    assert len(split_for_posting(res, 2.0, None, 10)[0]) == 2
+    assert len(split_for_posting(res, 0.0, None, 1)[0]) == 1  # cap respected
+
+
+@respx.mock
+async def test_post_review_falls_back_to_body_on_422():
+    from codereview.github.client import post_review
+
+    url = "https://api.github.com/repos/o/r/pulls/1/reviews"
+    route = respx.post(url).mock(side_effect=[httpx.Response(422), httpx.Response(200, json={})])
+    ok = await post_review(
+        "https://github.com/o/r/pull/1", "t", "body", [{"path": "f", "line": 1}], "fallback"
+    )
+    assert ok is False and route.call_count == 2
+    import json as _j
+
+    assert _j.loads(route.calls[1].request.read()) == {"body": "fallback", "event": "COMMENT"}

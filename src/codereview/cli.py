@@ -13,9 +13,9 @@ from rich.console import Console
 from codereview.cli_core import review_context
 from codereview.config import load_settings
 from codereview.context.builder import load_local
-from codereview.github.client import fetch_pr, post_review
+from codereview.github.client import commentable_lines, fetch_pr, post_review
 from codereview.models import ReviewResult
-from codereview.pipeline.output import github_comments
+from codereview.pipeline.output import render_review_body, split_for_posting
 from codereview.pipeline.run import PIPELINES
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -31,11 +31,17 @@ def review(
     repo: Annotated[Path | None, typer.Option(help="Checked-out repo for agent tools")] = None,
     post: Annotated[bool, typer.Option("--post/--dry-run")] = False,
     run_id: Annotated[str | None, typer.Option()] = None,
+    min_severity: Annotated[
+        float | None,
+        typer.Option(help="Post inline only findings with severity >= this (0-4). Default 3."),
+    ] = None,
 ) -> None:
     """Review one PR. Dry run by default (writes review.md/json and trace.json)."""
     if pipeline not in PIPELINES:
         raise typer.BadParameter(f"pipeline must be one of {PIPELINES}")
     settings = load_settings()
+    if min_severity is not None:
+        settings.post_min_severity = min_severity
 
     async def go() -> ReviewResult:
         if pr:
@@ -49,8 +55,21 @@ def review(
         result = await review_context(ctx, pipeline, settings, run_dir)
         console.print(f"[green]wrote[/green] {run_dir}/(review.md, review.json, trace.json)")
         if post and pr:
-            await post_review(pr, settings.github_token, result.summary, github_comments(result))
-            console.print("posted review")
+            floor = settings.post_min_severity
+            comments, rest = split_for_posting(
+                result, floor, commentable_lines(ctx.files), settings.max_inline_comments
+            )
+            if not (comments or rest or result.route.human_required):
+                console.print("nothing to post (no findings, no human-review flag)")
+                return result
+            body = render_review_body(result, len(comments), rest, floor)
+            # fallback if GitHub rejects inline comments: put every finding in the body
+            fallback = render_review_body(result, 0, [*result.inline, *result.overflow], floor)
+            ok = await post_review(pr, settings.github_token, body, comments, fallback)
+            console.print(
+                f"posted review: {len(comments)} inline, {len(rest)} in body"
+                + ("" if ok or not comments else " (inline rejected; posted as body)")
+            )
         return result
 
     result = asyncio.run(go())

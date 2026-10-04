@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     triage_char_budget: int = 120_000
     max_findings_per_agent: int = 8
     max_inline_comments: int = 10
+    post_min_severity: float = 3.0
+    """Only findings with gate severity >= this get inline PR comments (0 cosmetic .. 4 critical;
+    3 = serious). Lower-severity findings go in the review body, collapsed."""
     dedupe_line_window: int = 3
     match_line_window: int = 5
 
